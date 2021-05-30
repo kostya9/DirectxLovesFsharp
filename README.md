@@ -1,4 +1,4 @@
-WIP - playing around, making F# interop with Win32+DirectX
+# WIP - playing around, making F# interop with Win32+DirectX
 
 My thoughts:
 - GUIDs are important!
