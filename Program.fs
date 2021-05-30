@@ -225,11 +225,11 @@ module D3dInterop =
     [<Struct>]
     [<StructLayout(LayoutKind.Sequential)>]
     type D3D12_CPU_DESCRIPTOR_HANDLE = 
-        val mutable ptr: unativeint
+        val mutable ptr: nativeint
 
-        member this.Offset (offsetScaledByIncrementSize: int) = 
+        (*member this.Offset (offsetScaledByIncrementSize: int) = 
             this.ptr <- this.ptr + unativeint offsetScaledByIncrementSize
-            ()
+            ()*)
 
 
     [<Struct>]
@@ -242,25 +242,38 @@ module D3dInterop =
     [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
     type ID3D12DescriptorHeap =
         abstract member SetPrivateData:
-            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *DataSize: uint * pData: IntPtr
+            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+            DataSize: uint * 
+            pData: IntPtr
                 -> unit
 
         abstract member SetPrivateDataInterface:
-            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *pUnknown: IntPtr
+            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+            pUnknown: IntPtr
                 -> unit
 
         abstract member GetPrivateData:
-            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * pDataSize: byref<uint> * pData: nativeint
+            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+            pDataSize: byref<uint> * 
+            pData: nativeint
                 -> unit
 
         abstract member GetParent:
-            [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+            [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+                -> unit
+
+        abstract member GetDevice: 
+            [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
+            [<MarshalAs(UnmanagedType.IUnknown)>] ppvDevice: byref<Object>
                 -> unit
 
         abstract member GetDesc: unit -> D3D12_DESCRIPTOR_HEAP_DESC
+       
+        [<PreserveSig>]
+        abstract member GetCPUDescriptorHandleForHeapStart: byref<D3D12_CPU_DESCRIPTOR_HANDLE> -> unit
         
-        abstract member GetCPUDescriptorHandleForHeapStart: unit -> D3D12_CPU_DESCRIPTOR_HANDLE
-        
+        [<PreserveSig>]
         abstract member GetGPUDescriptorHandleForHeapStart: unit -> D3D12_GPU_DESCRIPTOR_HANDLE
 
     [<AllowNullLiteral>]
@@ -288,7 +301,7 @@ module D3dInterop =
         abstract member CreateCommandQueue:
             pDesc: byref<D3D12_COMMAND_QUEUE_DESC> *
             [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
-            [<MarshalAs(UnmanagedType.IUnknown)>] ppCommandQueue: byref<Object>
+            ppCommandQueue: byref<ID3D12CommandQueue>
                 -> unit
 
         abstract member CreateCommandAllocator: 
@@ -327,7 +340,7 @@ module D3dInterop =
         abstract member CreateDescriptorHeap:
             pDescriptorHeapDesc: byref<D3D12_DESCRIPTOR_HEAP_DESC> *
             [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
-            [<MarshalAs(UnmanagedType.IUnknown)>] ppvHeap: byref<Object>
+            ppvHeap: byref<ID3D12DescriptorHeap>
                 -> unit
 
         abstract member GetDescriptorHandleIncrementSize:
@@ -406,7 +419,7 @@ module D3dInterop =
             pDesc: byref<DXGI_SWAP_CHAIN_DESC1> * 
             pFullscreenDesc: int64 * 
             pRestrictToOutput: IDXGIOutput * 
-            [<MarshalAs(UnmanagedType.IUnknown)>] ppSwapChain: byref<Object>
+            ppSwapChain: byref<IDXGISwapChain1>
                 -> unit
 
         abstract member CreateSwapChainForCoreWindow:
@@ -429,14 +442,14 @@ module D3dInterop =
     extern void CreateDXGIFactory2(
         uint Flags,
         [<MarshalAs(UnmanagedType.LPStruct)>] [<In>] Guid riid, 
-        [<MarshalAs(UnmanagedType.IUnknown)>] Object& ppFactory)
+        IDXGIFactory2& ppFactory)
 
     [<DllImport("d3d12", ExactSpelling = true, PreserveSig = false)>]
     extern void D3D12CreateDevice(
         [<In>] IDXGIAdapter pAdapter, 
         D3D_FEATURE_LEVEL MinimumFeatureLevel,
         [<MarshalAs(UnmanagedType.LPStruct)>] Guid riid,
-        [<MarshalAs(UnmanagedType.IUnknown)>] Object& ppDevice)
+        ID3D12Device& ppDevice)
 
     [<DllImport("d3d12", ExactSpelling = true, PreserveSig = false)>]
     extern void D3D12GetDebugInterface(
@@ -445,17 +458,15 @@ module D3dInterop =
 
 let loadPipeline(window: WinInterop.Window) =
 
-    let mutable debugLayerObj: Object = null
     let mutable debugLayer: D3dInterop.ID3D12Debug = null
     let mutable result = 0un
     D3dInterop.D3D12GetDebugInterface(typeof<D3dInterop.ID3D12Debug>.GUID, &debugLayer)
     if result <> 0un then do failwith $"Got result {result}"
     debugLayer.EnableDebugLayer()
 
-    let mutable factoryObj: Object = null
-    D3dInterop.CreateDXGIFactory2(0x01u, typeof<D3dInterop.IDXGIFactory2>.GUID, &factoryObj)
+    let mutable factory: D3dInterop.IDXGIFactory2 = null
+    D3dInterop.CreateDXGIFactory2(0x01u, typeof<D3dInterop.IDXGIFactory2>.GUID, &factory)
     if result <> 0un then do failwith $"Got result {result}"
-    let mutable factory = factoryObj :?> D3dInterop.IDXGIFactory2
     
     // factory.MakeWindowAssociation(window.Handle, 0x1u)
 
@@ -470,16 +481,15 @@ let loadPipeline(window: WinInterop.Window) =
         if idx >= 1000u then
             do failwith "Could not find adapter in 1000 tries"
 
-    let mutable deviceObj: Object = null
-    D3dInterop.D3D12CreateDevice(null, D3dInterop.D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_12_0, typeof<D3dInterop.ID3D12Device>.GUID, &deviceObj)
+    let mutable device: D3dInterop.ID3D12Device = null
+    D3dInterop.D3D12CreateDevice(null, D3dInterop.D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_12_0, typeof<D3dInterop.ID3D12Device>.GUID, &device)
     if result <> 0un then do failwith $"Got result {result}"
-    let mutable device = deviceObj :?> D3dInterop.ID3D12Device
 
     let mutable desc = D3dInterop.D3D12_COMMAND_QUEUE_DESC()
     desc.Flags <- D3dInterop.D3D12_COMMAND_QUEUE_FLAGS.D3D12_COMMAND_QUEUE_FLAG_NONE
     desc.Type <-  D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT
 
-    let mutable commandQueue: Object = null
+    let mutable commandQueue: D3dInterop.ID3D12CommandQueue = null
     device.CreateCommandQueue(&desc, typeof<D3dInterop.ID3D12CommandQueue>.GUID, &commandQueue)
     let mutable swapChainDesc = D3dInterop.DXGI_SWAP_CHAIN_DESC1()
     let frameCount = 2u
@@ -493,19 +503,19 @@ let loadPipeline(window: WinInterop.Window) =
     swapChainDesc.SampleDesc.Count <- 1u
     swapChainDesc.Flags <- 0u
 
-    let mutable swapChain: Object = null
-    factory.CreateSwapChainForHwnd(commandQueue :?> D3dInterop.ID3D12CommandQueue, window.Handle, &swapChainDesc, 0L, null, &swapChain)
+    let mutable swapChain: D3dInterop.IDXGISwapChain1 = null
+    factory.CreateSwapChainForHwnd(commandQueue, window.Handle, &swapChainDesc, 0L, null, &swapChain)
 
     let mutable heapDesc = D3dInterop.D3D12_DESCRIPTOR_HEAP_DESC()
     heapDesc.NumDescriptors <- frameCount
     heapDesc.Type <- D3dInterop.D3D12_DESCRIPTOR_HEAP_TYPE.D3D12_DESCRIPTOR_HEAP_TYPE_RTV
     heapDesc.Flags <- D3dInterop.D3D12_DESCRIPTOR_HEAP_FLAGS.D3D12_DESCRIPTOR_HEAP_FLAG_NONE
 
-    let mutable heapObj: Object = null
-    device.CreateDescriptorHeap(&heapDesc, typeof<D3dInterop.ID3D12DescriptorHeap>.GUID, &heapObj)
-    let heap = heapObj :?> D3dInterop.ID3D12DescriptorHeap
+    let mutable heap: D3dInterop.ID3D12DescriptorHeap = null
+    device.CreateDescriptorHeap(&heapDesc, typeof<D3dInterop.ID3D12DescriptorHeap>.GUID, &heap)
 
-    let rtvHandle = heap.GetCPUDescriptorHandleForHeapStart()
+    let mutable rtvHandle = D3dInterop.D3D12_CPU_DESCRIPTOR_HANDLE()
+    heap.GetCPUDescriptorHandleForHeapStart(&rtvHandle)
     (*
     let rtvDescriptors = 
         [|
