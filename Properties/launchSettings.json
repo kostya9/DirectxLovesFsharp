@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DirectxLovesFsharp": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG;D3D_DEBUG_INFO</DefineConstants>
+    <OtherFlags></OtherFlags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="WinInterop.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+</Project>
