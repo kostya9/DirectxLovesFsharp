@@ -163,38 +163,6 @@ module D3dInterop =
     [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
     type IDXGISwapChain1 = interface end
 
-    [<AllowNullLiteral>]
-    [<Guid("aec22fb8-76f3-4639-9be0-28eb43a67a2e")>]
-    //[<ComImport>]
-    [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
-    type IDXGIObject = 
-        (*abstract member QueryInterface: 
-            [<MarshalAs(UnmanagedType.LPStruct)>]refiid: Guid *
-            ppvObject: byref<Object>
-                -> unit
-
-        abstract member AddRef: 
-            unit -> unit
-
-        abstract member Release: 
-            unit -> unit*)
-
-        abstract member SetPrivateData:
-            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *DataSize: uint * pData: IntPtr
-                -> unit
-
-        abstract member SetPrivateDataInterface:
-            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *pUnknown: IntPtr
-                -> unit
-
-        abstract member GetPrivateData:
-            [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * pDataSize: byref<uint> * pData: nativeint
-                -> unit
-
-        abstract member GetParent:
-            [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
-                -> unit
-
     // Well, at some point I will probably need to specify these
     type D3D12_GRAPHICS_PIPELINE_STATE_DESC = unit
     type D3D12_COMPUTE_PIPELINE_STATE_DESC = unit
