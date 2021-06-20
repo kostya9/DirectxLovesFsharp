@@ -6,6 +6,12 @@
     type HWND = nativeint
     type Handle = nativeint
 
+    type Window(handle: HWND, windowCallback: Delegate) = 
+        let _windowCallback = windowCallback
+
+        member this.Handle = handle
+
+    [<RequireQualifiedAccess>]
     module External =
 
         [<Flags>]
@@ -94,12 +100,6 @@
 
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
         extern bool DispatchMessageA(MSG& messages)
-
-
-    type Window(handle: HWND, windowCallback: Delegate) = 
-        let _windowCallback = windowCallback
-
-        member this.Handle = handle
 
 
     type WindowProc = delegate of nativeint * unativeint * nativeint * nativeint -> nativeint

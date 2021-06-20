@@ -11,9 +11,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="shaders\shader.hlsl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <Compile Include="WinInterop.fs" />
     <Compile Include="D3dInterop.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
+
+  <ItemGroup />
 
 </Project>

@@ -1,25 +1,33 @@
 ﻿// Learn more about F# at http://docs.microsoft.com/dotnet/fsharp
 open System
+open WinInterop
+open System.IO
 
-let loadPipeline(window: WinInterop.Window) =
+type D3dPipeline = {
+    IsDebug: bool;
+    Device: D3dInterop.ID3D12Device;
+}
 
-    let mutable debugLayer: D3dInterop.ID3D12Debug = null
-    let mutable result = 0un
-    D3dInterop.D3D12GetDebugInterface(typeof<D3dInterop.ID3D12Debug>.GUID, &debugLayer)
-    if result <> 0un then do failwith $"Got result {result}"
-    debugLayer.EnableDebugLayer()
+let loadPipeline (window: Window) isDebug  =
+
+    if isDebug then do
+        let mutable debugLayer: D3dInterop.ID3D12Debug = null
+        let mutable result = 0un
+        D3dInterop.D3D12GetDebugInterface(typeof<D3dInterop.ID3D12Debug>.GUID, &debugLayer)
+        if result <> 0un then do failwith $"Got result {result}"
+        debugLayer.EnableDebugLayer()
 
     let mutable factory: D3dInterop.IDXGIFactory2 = null
     D3dInterop.CreateDXGIFactory2(0x01u, typeof<D3dInterop.IDXGIFactory2>.GUID, &factory)
-    if result <> 0un then do failwith $"Got result {result}"
     
     // factory.MakeWindowAssociation(window.Handle, 0x1u)
 
     let mutable idx = 0u
     let mutable adapter: D3dInterop.IDXGIAdapter = null
     while adapter = null do
-        result <- factory.EnumAdapters(idx, &adapter)
+        let result = factory.EnumAdapters(idx, &adapter)
         idx <- idx + 1u
+
         if result <> 0un then
             do failwith $"Got result {result}"
 
@@ -28,7 +36,6 @@ let loadPipeline(window: WinInterop.Window) =
 
     let mutable device: D3dInterop.ID3D12Device = null
     D3dInterop.D3D12CreateDevice(null, D3dInterop.D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_12_0, typeof<D3dInterop.ID3D12Device>.GUID, &device)
-    if result <> 0un then do failwith $"Got result {result}"
 
     let mutable desc = D3dInterop.D3D12_COMMAND_QUEUE_DESC()
     desc.Flags <- D3dInterop.D3D12_COMMAND_QUEUE_FLAGS.D3D12_COMMAND_QUEUE_FLAG_NONE
@@ -80,16 +87,45 @@ let loadPipeline(window: WinInterop.Window) =
     let mutable allocator: D3dInterop.ID3D12CommandAllocator = null
     device.CreateCommandAllocator(D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, typeof<D3dInterop.ID3D12CommandAllocator>.GUID, &allocator)
 
-    ()
+    { Device = device; IsDebug = true }
 
-let loadAssets() = 
+let loadAssets pipeline = 
+    let mutable signatureDesc = D3dInterop.D3D12_ROOT_SIGNATURE_DESC()
+    signatureDesc.Flags <- D3dInterop.D3D12_ROOT_SIGNATURE_FLAGS.D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+
+    let mutable signature: D3dInterop.ID3DBlob = null
+    let mutable errorBlob: D3dInterop.ID3DBlob = null
+
+    D3dInterop.D3D12SerializeRootSignature(&signatureDesc, D3dInterop.D3D_ROOT_SIGNATURE_VERSION.D3D_ROOT_SIGNATURE_VERSION_1, &signature, &errorBlob)
+
+    let bufferSize = signature.GetBufferSize()
+    let bufferPointer = signature.GetBufferPointer()
+    let mutable rootSignature: D3dInterop.ID3D12RootSignature = null
+    pipeline.Device.CreateRootSignature(0u, bufferPointer, bufferSize, typeof<D3dInterop.ID3D12RootSignature>.GUID, &rootSignature)
+
+    let mutable error: D3dInterop.ID3DBlob = null
+    let mutable vertexShader: D3dInterop.ID3DBlob = null
+    let mutable pixelShader: D3dInterop.ID3DBlob = null
+
+    let compileFlags = 
+        if pipeline.IsDebug 
+        then (D3dInterop.D3DCOMPILE.D3DCOMPILE_DEBUG ||| D3dInterop.D3DCOMPILE.D3DCOMPILE_SKIP_OPTIMIZATION)
+        else 0u
+
+
+    let path = Path.GetFullPath("shaders/shader.hlsl")
+    //D3dInterop.D3DCompileFromFile(path, 0n, 0n, "VSMain", "vs_5_0", compileFlags, 0u, &vertexShader, &error)
+    //D3dInterop.D3DCompileFromFile(path, 0n, 0n, "VSMain", "vs_5_0", compileFlags, 0u, &vertexShader, &error)
     ()
     
 
 let init() =
     let window = WinInterop.makeWindow()
-    loadPipeline window
-    loadAssets()
+
+    let isDebug = true
+    loadPipeline window isDebug
+    |> loadAssets
+
     ()
 
 let update() = 

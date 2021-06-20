@@ -3,6 +3,12 @@
 open System
 open System.Runtime.InteropServices
 
+[<RequireQualifiedAccess>]
+module D3DCOMPILE = 
+    let D3DCOMPILE_DEBUG = 1u <<< 0
+
+    let D3DCOMPILE_SKIP_OPTIMIZATION = 1u <<< 2
+
 type DXGI_GPU_PREFERENCE =
     | DXGI_GPU_PREFERENCE_UNSPECIFIED = 0
     | DXGI_GPU_PREFERENCE_MINIMUM_POWER = 1
@@ -210,6 +216,35 @@ type D3D12_COMPUTE_PIPELINE_STATE_DESC = unit
 type ID3D12PipelineState = unit
 type D3D12_FEATURE = unit
 
+type D3D_ROOT_SIGNATURE_VERSION = 
+    | D3D_ROOT_SIGNATURE_VERSION_1 = 0x1
+    | D3D_ROOT_SIGNATURE_VERSION_1_0 = 0x1
+    | D3D_ROOT_SIGNATURE_VERSION_1_1 = 0x2
+
+type D3D12_ROOT_SIGNATURE_FLAGS = 
+    | D3D12_ROOT_SIGNATURE_FLAG_NONE                                  = 0x0
+    | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT    = 0x1
+    | D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS        = 0x2
+    | D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS          = 0x4
+    | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS        = 0x8
+    | D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS      = 0x10
+    | D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS         = 0x20
+    | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT                   = 0x40
+    | D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE                  = 0x80
+    | D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS = 0x100
+    | D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS          = 0x200
+    | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED     = 0x400
+    | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED         = 0x800
+
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_ROOT_SIGNATURE_DESC = 
+    val mutable NumParameters: uint
+    val mutable pParameters: nativeint
+    val mutable NumStaticSamplers: uint
+    val mutable pStaticSamplers: nativeint
+    val mutable Flags: D3D12_ROOT_SIGNATURE_FLAGS
+
 [<AllowNullLiteral>]
 [<Guid("6102dee4-af59-4b09-b999-b44d73f09b24")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
@@ -239,11 +274,6 @@ type D3D12_DESCRIPTOR_HEAP_DESC =
 [<StructLayout(LayoutKind.Sequential)>]
 type D3D12_CPU_DESCRIPTOR_HANDLE = 
     val mutable ptr: nativeint
-
-    (*member this.Offset (offsetScaledByIncrementSize: int) = 
-        this.ptr <- this.ptr + unativeint offsetScaledByIncrementSize
-        ()*)
-
 
 [<Struct>]
 [<StructLayout(LayoutKind.Sequential)>]
@@ -288,6 +318,11 @@ type ID3D12DescriptorHeap =
         
     [<PreserveSig>]
     abstract member GetGPUDescriptorHandleForHeapStart: unit -> D3D12_GPU_DESCRIPTOR_HANDLE
+
+[<AllowNullLiteral>]
+[<Guid("c54a6b66-72df-4ee8-8be5-a946a1429214")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type ID3D12RootSignature = interface end
 
 [<AllowNullLiteral>]
 [<Guid("189819f1-1db6-4b57-be54-1821339b85f7")>]
@@ -365,7 +400,7 @@ type ID3D12Device =
         pBlobWithRootSignature: nativeint * 
         blobLengthInBytes: nativeint * 
         [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppvRootSignature: byref<Object>
+        ppvRootSignature: byref<ID3D12RootSignature>
             -> unit
         
     abstract member CreateConstantBufferView: 
@@ -394,6 +429,27 @@ type ID3D12Device =
 
 [<AllowNullLiteral>]
 type IDXGIOutput = interface end
+
+[<Guid("8ba5fb08-5195-40e2-ac58-0d989c3a0102")>]
+[<AllowNullLiteral>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type ID3DBlob =
+    [<PreserveSig>]
+    abstract member GetBufferPointer: 
+        unit -> nativeint
+
+    [<PreserveSig>]
+    abstract member GetBufferSize: 
+        unit -> nativeint
+
+type ID3DInclude = interface end
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D_SHADER_MACRO = {
+    [<MarshalAs(UnmanagedType.LPStr)>] Name: string
+    [<MarshalAs(UnmanagedType.LPStr)>] Definition: string
+}
 
 [<AllowNullLiteral>]
 [<Guid("50c83a1c-e072-4c48-87b0-3630fa36a6d0")>]
@@ -501,3 +557,21 @@ extern void D3D12GetDebugInterface(
     [<MarshalAs(UnmanagedType.LPStruct)>] Guid riid,
     ID3D12Debug& ppvDebug)
 
+[<DllImport("d3d12", ExactSpelling = true, PreserveSig = false)>]
+extern void D3D12SerializeRootSignature(
+    D3D12_ROOT_SIGNATURE_DESC& pRootSignature,
+    D3D_ROOT_SIGNATURE_VERSION Version,
+    ID3DBlob& ppBlob,
+    ID3DBlob& ppErrorBlob)
+
+[<DllImport("d3dcompiler_47", ExactSpelling = true, PreserveSig = false)>]
+extern void D3DCompileFromFile(
+    [<MarshalAs(UnmanagedType.LPWStr)>] string pFileName,
+    nativeint pDefines,
+    nativeint pInclude,
+    [<MarshalAs(UnmanagedType.LPStr)>] string pEntrypoint,
+    [<MarshalAs(UnmanagedType.LPStr)>] string pTarget,
+    uint Flags1,
+    uint Flags2,
+    ID3DBlob& ppCode,
+    ID3DBlob& ppErrorMsgs)
