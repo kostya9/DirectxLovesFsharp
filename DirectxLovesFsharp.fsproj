@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Compile Include="WinInterop.fs" />
+    <Compile Include="D3dInterop.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
