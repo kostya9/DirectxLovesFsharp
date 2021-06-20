@@ -2,6 +2,7 @@
 open System
 open WinInterop
 open System.IO
+open System.Text
 
 type D3dPipeline = {
     IsDebug: bool;
@@ -112,11 +113,31 @@ let loadAssets pipeline =
         then (D3dInterop.D3DCOMPILE.D3DCOMPILE_DEBUG ||| D3dInterop.D3DCOMPILE.D3DCOMPILE_SKIP_OPTIMIZATION)
         else 0u
 
+    let readShaderError (errorBlob: D3dInterop.ID3DBlob) = 
+        let errStart = errorBlob.GetBufferPointer()
+        let errSize = errorBlob.GetBufferSize() |> int
+
+        let span = new ReadOnlySpan<byte>(errStart, errSize)
+        let errText = Encoding.UTF8.GetString(span);
+
+        Console.WriteLine(errText)
+
+        errText
 
     let path = Path.GetFullPath("shaders/shader.hlsl")
-    //D3dInterop.D3DCompileFromFile(path, 0n, 0n, "VSMain", "vs_5_0", compileFlags, 0u, &vertexShader, &error)
-    //D3dInterop.D3DCompileFromFile(path, 0n, 0n, "VSMain", "vs_5_0", compileFlags, 0u, &vertexShader, &error)
+    let err = D3dInterop.D3DCompileFromFile(path, 0n, 0n, "VSMain", "vs_5_0", compileFlags, 0u, &vertexShader, &error)
+
+    if err <> 0un then do
+        readShaderError error
+        |> failwith
+
+    let err = D3dInterop.D3DCompileFromFile(path, 0n, 0n, "PSMain", "ps_5_0", compileFlags, 0u, &pixelShader, &error)
+    if err <> 0un then do
+        readShaderError error
+        |> failwith
     ()
+
+
     
 
 let init() =

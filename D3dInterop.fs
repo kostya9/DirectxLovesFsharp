@@ -397,7 +397,7 @@ type ID3D12Device =
 
     abstract member CreateRootSignature: 
         nodeMask: uint *
-        pBlobWithRootSignature: nativeint * 
+        pBlobWithRootSignature: voidptr * 
         blobLengthInBytes: nativeint * 
         [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
         ppvRootSignature: byref<ID3D12RootSignature>
@@ -436,7 +436,7 @@ type IDXGIOutput = interface end
 type ID3DBlob =
     [<PreserveSig>]
     abstract member GetBufferPointer: 
-        unit -> nativeint
+        unit -> voidptr
 
     [<PreserveSig>]
     abstract member GetBufferSize: 
@@ -564,8 +564,8 @@ extern void D3D12SerializeRootSignature(
     ID3DBlob& ppBlob,
     ID3DBlob& ppErrorBlob)
 
-[<DllImport("d3dcompiler_47", ExactSpelling = true, PreserveSig = false)>]
-extern void D3DCompileFromFile(
+[<DllImport("d3dcompiler_47", ExactSpelling = true, PreserveSig = true)>]
+extern unativeint D3DCompileFromFile(
     [<MarshalAs(UnmanagedType.LPWStr)>] string pFileName,
     nativeint pDefines,
     nativeint pInclude,
