@@ -117,7 +117,7 @@ let loadAssets pipeline =
         let errStart = errorBlob.GetBufferPointer()
         let errSize = errorBlob.GetBufferSize() |> int
 
-        let span = new ReadOnlySpan<byte>(errStart, errSize)
+        let span = new ReadOnlySpan<byte>(NativeInterop.NativePtr.ofNativeInt<byte>(errStart) |> NativeInterop.NativePtr.toVoidPtr, errSize)
         let errText = Encoding.UTF8.GetString(span);
 
         Console.WriteLine(errText)
@@ -135,9 +135,101 @@ let loadAssets pipeline =
     if err <> 0un then do
         readShaderError error
         |> failwith
+
+    (*let mutable inputElementDescs: D3dInterop.D3D12_INPUT_ELEMENT_DESC[] = [|
+            {   
+                SemanticName = "POSITION";
+                SemanticIndex = 0u;
+                Format = D3dInterop.DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT;
+                InputSlot = 0u;
+                AlignedByteOffset = 0u;
+                InputSlotClass = D3dInterop.D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+                InstanceDataStepRate = 0u;
+            }
+            {   
+                SemanticName = "COLOR";
+                SemanticIndex = 0u;
+                Format = D3dInterop.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
+                InputSlot = 0u;
+                AlignedByteOffset = 12u;
+                InputSlotClass = D3dInterop.D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+                InstanceDataStepRate = 0u;
+            }
+        |]
+
+    let getRasterizerState() = 
+        let mutable rasterizerState = D3dInterop.D3D12_RASTERIZER_DESC()
+        rasterizerState.FillMode <- D3dInterop.D3D12_FILL_MODE.D3D12_FILL_MODE_SOLID
+        rasterizerState.CullMode <- D3dInterop.D3D12_CULL_MODE.D3D12_CULL_MODE_BACK
+        rasterizerState.FrontCounterClockwise <- false
+        rasterizerState.DepthBias <- 0
+        rasterizerState.DepthBiasClamp <- 0.0
+        rasterizerState.SlopeScaledDepthBias <- 0.0
+        rasterizerState.DepthClipEnable <- true
+        rasterizerState.MultisampleEnable <- false
+        rasterizerState.AntialiasedLineEnable <- false
+        rasterizerState.ForcedSampleCount <- 0u
+        rasterizerState.ConservativeRaster <- D3dInterop.D3D12_CONSERVATIVE_RASTERIZATION_MODE.D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF
+        rasterizerState
+
+    let getBlendState() = 
+        let mutable blendState = D3dInterop.D3D12_BLEND_DESC()
+        blendState.AlphaToCoverageEnable <- false
+        blendState.IndependentBlendEnable <- false
+
+        let mutable defaultRenderTargetBlendDesc = D3dInterop.D3D12_RENDER_TARGET_BLEND_DESC()
+        defaultRenderTargetBlendDesc.BlendEnable <- false
+        defaultRenderTargetBlendDesc.LogicOpEnable <- false
+        defaultRenderTargetBlendDesc.SrcBlend <- D3dInterop.D3D12_BLEND.D3D12_BLEND_ONE
+        defaultRenderTargetBlendDesc.DestBlend <- D3dInterop.D3D12_BLEND.D3D12_BLEND_ZERO
+        defaultRenderTargetBlendDesc.BlendOp <- D3dInterop.D3D12_BLEND_OP.D3D12_BLEND_OP_ADD
+        defaultRenderTargetBlendDesc.SrcBlendAlpha <- D3dInterop.D3D12_BLEND.D3D12_BLEND_ONE
+        defaultRenderTargetBlendDesc.DestBlendAlpha <- D3dInterop.D3D12_BLEND.D3D12_BLEND_ZERO
+        defaultRenderTargetBlendDesc.BlendOpAlpha <- D3dInterop.D3D12_BLEND_OP.D3D12_BLEND_OP_ADD
+        defaultRenderTargetBlendDesc.LogicOp <- D3dInterop.D3D12_LOGIC_OP.D3D12_LOGIC_OP_NOOP
+        defaultRenderTargetBlendDesc.RenderTargetWriteMask <- 
+            D3dInterop.D3D12_COLOR_WRITE_ENABLE.D3D12_COLOR_WRITE_ENABLE_ALPHA
+            ||| D3dInterop.D3D12_COLOR_WRITE_ENABLE.D3D12_COLOR_WRITE_ENABLE_BLUE
+            ||| D3dInterop.D3D12_COLOR_WRITE_ENABLE.D3D12_COLOR_WRITE_ENABLE_GREEN
+            ||| D3dInterop.D3D12_COLOR_WRITE_ENABLE.D3D12_COLOR_WRITE_ENABLE_ALPHA
+
+        blendState.RenderTarget <- [|
+            for i in 0..7 do
+                defaultRenderTargetBlendDesc
+        |]
+
+        blendState
+
+    use firstElPtr = fixed inputElementDescs.[0].SemanticName
+
+    let mutable psoDesc = D3dInterop.D3D12_GRAPHICS_PIPELINE_STATE_DESC()
+    psoDesc.InputLayout.pInputElementDescs <- NativeInterop.NativePtr.toNativeInt(firstElPtr)
+    psoDesc.InputLayout.NumElements <- uint inputElementDescs.Length
+    psoDesc.pRootSignature <- rootSignature
+    psoDesc.VS.pShaderBytecode <- vertexShader.GetBufferPointer()
+    psoDesc.VS.BytecodeLength <- vertexShader.GetBufferSize()
+    psoDesc.PS.pShaderBytecode <- pixelShader.GetBufferPointer()
+    psoDesc.PS.BytecodeLength <- pixelShader.GetBufferSize()
+    psoDesc.RasterizerState <- getRasterizerState()
+    psoDesc.BlendState <- getBlendState()
+    psoDesc.DepthStencilState.DepthEnable <- false
+    psoDesc.DepthStencilState.StencilEnable <- false
+    psoDesc.SampleMask <- UInt32.MaxValue
+    psoDesc.PrimitiveTopologyType <- D3dInterop.D3D12_PRIMITIVE_TOPOLOGY_TYPE.D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
+    psoDesc.NumRenderTargets <- 1u
+    psoDesc.RTVFormats <- [| 
+        for i in 0..7 do
+            if i = 0 
+            then D3dInterop.DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM
+            else D3dInterop.DXGI_FORMAT.DXGI_FORMAT_UNKNOWN
+        |]
+    
+    psoDesc.SampleDesc.Count <- 1u
+
+    let mutable pipelineState: D3dInterop.ID3D12PipelineState = null
+    pipeline.Device.CreateGraphicsPipelineState(&psoDesc, typeof<D3dInterop.ID3D12PipelineState>.GUID, &pipelineState)*)
+
     ()
-
-
     
 
 let init() =

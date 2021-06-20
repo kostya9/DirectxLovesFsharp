@@ -56,6 +56,9 @@ type DXGI_RATIONAL =
     val mutable Denominator: uint
 
 type DXGI_FORMAT = 
+    | DXGI_FORMAT_UNKNOWN = 0
+    | DXGI_FORMAT_R32G32B32A32_FLOAT = 2
+    | DXGI_FORMAT_R32G32B32_FLOAT = 6
     | DXGI_FORMAT_R8G8B8A8_UNORM = 28
     | DXGI_FORMAT_R8G8B8A8_UNORM_SRGB = 29
 
@@ -211,10 +214,13 @@ type IDXGISwapChain1 =
             -> unit
 
 // Well, at some point I will probably need to specify these
-type D3D12_GRAPHICS_PIPELINE_STATE_DESC = unit
 type D3D12_COMPUTE_PIPELINE_STATE_DESC = unit
-type ID3D12PipelineState = unit
 type D3D12_FEATURE = unit
+
+[<AllowNullLiteral>]
+[<Guid("765a30f3-f624-4c6f-a828-ace948622445")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type ID3D12PipelineState = interface end
 
 type D3D_ROOT_SIGNATURE_VERSION = 
     | D3D_ROOT_SIGNATURE_VERSION_1 = 0x1
@@ -244,6 +250,7 @@ type D3D12_ROOT_SIGNATURE_DESC =
     val mutable NumStaticSamplers: uint
     val mutable pStaticSamplers: nativeint
     val mutable Flags: D3D12_ROOT_SIGNATURE_FLAGS
+    
 
 [<AllowNullLiteral>]
 [<Guid("6102dee4-af59-4b09-b999-b44d73f09b24")>]
@@ -279,6 +286,7 @@ type D3D12_CPU_DESCRIPTOR_HANDLE =
 [<StructLayout(LayoutKind.Sequential)>]
 type D3D12_GPU_DESCRIPTOR_HANDLE = 
     val mutable ptr: unativeint
+
 
 [<AllowNullLiteral>]
 [<Guid("8efb471d-616c-4f49-90f7-127bb763fa51")>]
@@ -324,6 +332,246 @@ type ID3D12DescriptorHeap =
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12RootSignature = interface end
 
+type D3D12_INPUT_CLASSIFICATION = 
+    | D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA = 0
+    | D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA = 1
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_INPUT_ELEMENT_DESC = {
+    [<MarshalAs(UnmanagedType.LPStr)>] SemanticName: string;
+    SemanticIndex: uint;
+    Format: DXGI_FORMAT;
+    InputSlot: uint;
+    AlignedByteOffset: uint;
+    InputSlotClass: D3D12_INPUT_CLASSIFICATION;
+    InstanceDataStepRate: uint; }
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_SHADER_BYTECODE =
+    val mutable pShaderBytecode: nativeint
+    val mutable BytecodeLength: unativeint
+
+type D3D12_SO_DECLARATION_ENTRY =
+    val mutable Stream: uint;
+    [<MarshalAs(UnmanagedType.LPStr)>] val mutable  SemanticName: string;
+    val mutable SemanticIndex: uint;
+    val mutable StartComponent: byte;
+    val mutable ComponentCount: byte;
+    val mutable OutputSlot: byte;
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_STREAM_OUTPUT_DESC = 
+    val mutable pSODeclaration: nativeint // Pointer to D3D12_SO_DECLARATION_ENTRY (cannot have byref in structs, which is unfortunate)
+    val mutable NumEntries: uint
+    val mutable pBufferStrides: nativeint
+    val mutable NumStrides: uint;
+    val mutable RasterizedStream: uint;
+
+type D3D12_BLEND =
+    | D3D12_BLEND_ZERO = 1
+    | D3D12_BLEND_ONE = 2
+    | D3D12_BLEND_SRC_COLOR = 3
+    | D3D12_BLEND_INV_SRC_COLOR = 4
+    | D3D12_BLEND_SRC_ALPHA = 5
+    | D3D12_BLEND_INV_SRC_ALPHA = 6
+    | D3D12_BLEND_DEST_ALPHA = 7
+    | D3D12_BLEND_INV_DEST_ALPHA = 8
+    | D3D12_BLEND_DEST_COLOR = 9
+    | D3D12_BLEND_INV_DEST_COLOR = 10
+    | D3D12_BLEND_SRC_ALPHA_SAT = 11
+    | D3D12_BLEND_BLEND_FACTOR = 14
+    | D3D12_BLEND_INV_BLEND_FACTOR = 15
+    | D3D12_BLEND_SRC1_COLOR = 16
+    | D3D12_BLEND_INV_SRC1_COLOR = 17
+    | D3D12_BLEND_SRC1_ALPHA = 18
+    | D3D12_BLEND_INV_SRC1_ALPHA = 19
+
+type D3D12_BLEND_OP = 
+    | D3D12_BLEND_OP_ADD = 1
+    | D3D12_BLEND_OP_SUBTRACT = 2
+    | D3D12_BLEND_OP_REV_SUBTRACT = 3
+    | D3D12_BLEND_OP_MIN = 4
+    | D3D12_BLEND_OP_MAX = 5
+
+type D3D12_LOGIC_OP =
+    | D3D12_LOGIC_OP_CLEAR = 0
+    | D3D12_LOGIC_OP_SET = 1
+    | D3D12_LOGIC_OP_COPY = 2
+    | D3D12_LOGIC_OP_COPY_INVERTED = 3
+    | D3D12_LOGIC_OP_NOOP = 4
+    | D3D12_LOGIC_OP_INVERT = 5
+    | D3D12_LOGIC_OP_AND = 6
+    | D3D12_LOGIC_OP_NAND = 7
+    | D3D12_LOGIC_OP_OR = 8
+    | D3D12_LOGIC_OP_NOR = 9
+    | D3D12_LOGIC_OP_XOR = 10
+    | D3D12_LOGIC_OP_EQUIV = 11
+    | D3D12_LOGIC_OP_AND_REVERSE = 12
+    | D3D12_LOGIC_OP_AND_INVERTED = 13
+    | D3D12_LOGIC_OP_OR_REVERSE = 14
+    | D3D12_LOGIC_OP_OR_INVERTED = 15
+
+[<Flags>]
+type D3D12_COLOR_WRITE_ENABLE =
+    | D3D12_COLOR_WRITE_ENABLE_RED = 1uy
+    | D3D12_COLOR_WRITE_ENABLE_GREEN = 2uy
+    | D3D12_COLOR_WRITE_ENABLE_BLUE = 4uy
+    | D3D12_COLOR_WRITE_ENABLE_ALPHA = 8uy
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_RENDER_TARGET_BLEND_DESC =
+    val mutable BlendEnable: bool;
+    val mutable LogicOpEnable: bool;
+    val mutable SrcBlend: D3D12_BLEND;
+    val mutable DestBlend: D3D12_BLEND;
+    val mutable BlendOp: D3D12_BLEND_OP;
+    val mutable SrcBlendAlpha: D3D12_BLEND;
+    val mutable DestBlendAlpha: D3D12_BLEND;
+    val mutable BlendOpAlpha: D3D12_BLEND_OP;
+    val mutable LogicOp: D3D12_LOGIC_OP;
+    val mutable RenderTargetWriteMask: D3D12_COLOR_WRITE_ENABLE;
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_BLEND_DESC =
+    val mutable AlphaToCoverageEnable: bool
+    val mutable IndependentBlendEnable: bool
+
+    [<MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)>] 
+    val mutable RenderTarget: D3D12_RENDER_TARGET_BLEND_DESC[] // Size=8
+
+type D3D12_FILL_MODE =
+    | D3D12_FILL_MODE_WIREFRAME = 2
+    | D3D12_FILL_MODE_SOLID = 3
+
+type D3D12_CULL_MODE =
+    | D3D12_CULL_MODE_NONE = 1
+    | D3D12_CULL_MODE_FRONT = 2
+    | D3D12_CULL_MODE_BACK = 3
+
+type D3D12_CONSERVATIVE_RASTERIZATION_MODE = 
+    | D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF = 0
+    | D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON = 1
+
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_RASTERIZER_DESC =
+    val mutable FillMode: D3D12_FILL_MODE;
+    val mutable CullMode: D3D12_CULL_MODE;
+    val mutable FrontCounterClockwise: bool;
+    val mutable DepthBias: int;
+    val mutable DepthBiasClamp: float;
+    val mutable SlopeScaledDepthBias: float;
+    val mutable DepthClipEnable: bool;
+    val mutable MultisampleEnable: bool;
+    val mutable AntialiasedLineEnable: bool;
+    val mutable ForcedSampleCount: uint;
+    val mutable ConservativeRaster: D3D12_CONSERVATIVE_RASTERIZATION_MODE;
+
+type D3D12_DEPTH_WRITE_MASK =
+    | D3D12_DEPTH_WRITE_MASK_ZERO = 0
+    | D3D12_DEPTH_WRITE_MASK_ALL = 1
+
+type D3D12_COMPARISON_FUNC =
+    | D3D12_COMPARISON_FUNC_NEVER = 1
+    | D3D12_COMPARISON_FUNC_LESS = 2
+    | D3D12_COMPARISON_FUNC_EQUAL = 3
+    | D3D12_COMPARISON_FUNC_LESS_EQUAL = 4
+    | D3D12_COMPARISON_FUNC_GREATER = 5
+    | D3D12_COMPARISON_FUNC_NOT_EQUAL = 6
+    | D3D12_COMPARISON_FUNC_GREATER_EQUAL = 7
+    | D3D12_COMPARISON_FUNC_ALWAYS = 8
+
+type D3D12_STENCIL_OP =
+    | D3D12_STENCIL_OP_KEEP = 1
+    | D3D12_STENCIL_OP_ZERO = 2
+    | D3D12_STENCIL_OP_REPLACE = 3
+    | D3D12_STENCIL_OP_INCR_SAT = 4
+    | D3D12_STENCIL_OP_DECR_SAT = 5
+    | D3D12_STENCIL_OP_INVERT = 6
+    | D3D12_STENCIL_OP_INCR = 7
+    | D3D12_STENCIL_OP_DECR = 8
+
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_DEPTH_STENCILOP_DESC =
+    val mutable StencilFailOp: D3D12_STENCIL_OP;
+    val mutable StencilDepthFailOp: D3D12_STENCIL_OP;
+    val mutable StencilPassOp: D3D12_STENCIL_OP;
+    val mutable StencilFunc: D3D12_COMPARISON_FUNC;
+
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_DEPTH_STENCIL_DESC =
+    val mutable DepthEnable: bool;
+    val mutable DepthWriteMask: D3D12_DEPTH_WRITE_MASK;
+    val mutable DepthFunc: D3D12_COMPARISON_FUNC;
+    val mutable StencilEnable: bool;
+    val mutable StencilReadMask: uint8;
+    val mutable StencilWriteMask: uint8;
+    val mutable FrontFace: D3D12_DEPTH_STENCILOP_DESC;
+    val mutable BackFace: D3D12_DEPTH_STENCILOP_DESC;
+
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_INPUT_LAYOUT_DESC =
+    val mutable pInputElementDescs: nativeint; // Pointer to D3D12_INPUT_ELEMENT_DESC (cannot have byref in structs, which is unfortunate)
+    val mutable NumElements: uint;
+
+type D3D12_INDEX_BUFFER_STRIP_CUT_VALUE =
+    | D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED = 0
+    | D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF = 1
+    | D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF = 2
+
+type D3D12_PRIMITIVE_TOPOLOGY_TYPE =
+    | D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED = 0
+    | D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT = 1
+    | D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE = 2
+    | D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE = 3
+    | D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH = 4
+
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_CACHED_PIPELINE_STATE =
+    val mutable pCachedBlob: nativeint;
+    val mutable CachedBlobSizeInBytes: unativeint;
+
+type D3D12_PIPELINE_STATE_FLAGS =
+    | D3D12_PIPELINE_STATE_FLAG_NONE = 0
+    | D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG = 0x1
+
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_GRAPHICS_PIPELINE_STATE_DESC =
+    val mutable pRootSignature: ID3D12RootSignature;
+    val mutable VS: D3D12_SHADER_BYTECODE;
+    val mutable PS: D3D12_SHADER_BYTECODE;
+    val mutable DS: D3D12_SHADER_BYTECODE;
+    val mutable HS: D3D12_SHADER_BYTECODE;
+    val mutable GS: D3D12_SHADER_BYTECODE;
+    val mutable StreamOutput: D3D12_STREAM_OUTPUT_DESC;
+    val mutable BlendState: D3D12_BLEND_DESC;
+    val mutable SampleMask: uint;
+    val mutable RasterizerState: D3D12_RASTERIZER_DESC;
+    val mutable DepthStencilState: D3D12_DEPTH_STENCIL_DESC;
+    val mutable InputLayout: D3D12_INPUT_LAYOUT_DESC;
+    val mutable IBStripCutValue: D3D12_INDEX_BUFFER_STRIP_CUT_VALUE;
+    val mutable PrimitiveTopologyType: D3D12_PRIMITIVE_TOPOLOGY_TYPE;
+    val mutable NumRenderTargets: uint;
+
+    [<MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)>] 
+    val mutable RTVFormats: DXGI_FORMAT[];
+
+    val mutable DSVFormat: DXGI_FORMAT;
+    val mutable SampleDesc: DXGI_SAMPLE_DESC;
+    val mutable NodeMask: uint;
+    val mutable CachedPSO: D3D12_CACHED_PIPELINE_STATE;
+    val mutable Flags: D3D12_PIPELINE_STATE_FLAGS;
+
 [<AllowNullLiteral>]
 [<Guid("189819f1-1db6-4b57-be54-1821339b85f7")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
@@ -361,7 +609,7 @@ type ID3D12Device =
     abstract member CreateGraphicsPipelineState:
         pDesc: byref<D3D12_GRAPHICS_PIPELINE_STATE_DESC> *
         [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppPipelineState: byref<Object>
+        ppPipelineState: byref<ID3D12PipelineState>
             -> unit
 
     abstract member CreateComputePipelineState:
@@ -397,8 +645,8 @@ type ID3D12Device =
 
     abstract member CreateRootSignature: 
         nodeMask: uint *
-        pBlobWithRootSignature: voidptr * 
-        blobLengthInBytes: nativeint * 
+        pBlobWithRootSignature: nativeint * 
+        blobLengthInBytes: unativeint * 
         [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
         ppvRootSignature: byref<ID3D12RootSignature>
             -> unit
@@ -436,11 +684,11 @@ type IDXGIOutput = interface end
 type ID3DBlob =
     [<PreserveSig>]
     abstract member GetBufferPointer: 
-        unit -> voidptr
+        unit -> nativeint
 
     [<PreserveSig>]
     abstract member GetBufferSize: 
-        unit -> nativeint
+        unit -> unativeint
 
 type ID3DInclude = interface end
 
