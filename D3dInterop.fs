@@ -338,14 +338,14 @@ type D3D12_INPUT_CLASSIFICATION =
 
 [<Struct>]
 [<StructLayout(LayoutKind.Sequential)>]
-type D3D12_INPUT_ELEMENT_DESC = {
-    [<MarshalAs(UnmanagedType.LPStr)>] SemanticName: string;
-    SemanticIndex: uint;
-    Format: DXGI_FORMAT;
-    InputSlot: uint;
-    AlignedByteOffset: uint;
-    InputSlotClass: D3D12_INPUT_CLASSIFICATION;
-    InstanceDataStepRate: uint; }
+type D3D12_INPUT_ELEMENT_DESC =
+    [<MarshalAs(UnmanagedType.LPStr)>] val mutable SemanticName: string;
+    val mutable SemanticIndex: uint;
+    val mutable Format: DXGI_FORMAT;
+    val mutable InputSlot: uint;
+    val mutable AlignedByteOffset: uint;
+    val mutable InputSlotClass: D3D12_INPUT_CLASSIFICATION;
+    val mutable InstanceDataStepRate: uint;
 
 [<Struct>]
 [<StructLayout(LayoutKind.Sequential)>]
@@ -353,6 +353,8 @@ type D3D12_SHADER_BYTECODE =
     val mutable pShaderBytecode: nativeint
     val mutable BytecodeLength: unativeint
 
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
 type D3D12_SO_DECLARATION_ENTRY =
     val mutable Stream: uint;
     [<MarshalAs(UnmanagedType.LPStr)>] val mutable  SemanticName: string;
@@ -464,8 +466,8 @@ type D3D12_RASTERIZER_DESC =
     val mutable CullMode: D3D12_CULL_MODE;
     val mutable FrontCounterClockwise: bool;
     val mutable DepthBias: int;
-    val mutable DepthBiasClamp: float;
-    val mutable SlopeScaledDepthBias: float;
+    val mutable DepthBiasClamp: single;
+    val mutable SlopeScaledDepthBias: single;
     val mutable DepthClipEnable: bool;
     val mutable MultisampleEnable: bool;
     val mutable AntialiasedLineEnable: bool;
@@ -540,9 +542,10 @@ type D3D12_CACHED_PIPELINE_STATE =
     val mutable pCachedBlob: nativeint;
     val mutable CachedBlobSizeInBytes: unativeint;
 
+[<Flags>]
 type D3D12_PIPELINE_STATE_FLAGS =
-    | D3D12_PIPELINE_STATE_FLAG_NONE = 0
-    | D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG = 0x1
+    | D3D12_PIPELINE_STATE_FLAG_NONE = 0x00000000
+    | D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG = 0x00000001
 
 [<StructLayout(LayoutKind.Sequential)>]
 [<Struct>]

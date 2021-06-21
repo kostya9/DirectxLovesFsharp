@@ -3,6 +3,7 @@ open System
 open WinInterop
 open System.IO
 open System.Text
+open System.Runtime.InteropServices
 
 type D3dPipeline = {
     IsDebug: bool;
@@ -81,7 +82,7 @@ let loadPipeline (window: Window) isDebug  =
 
                 let mutable buffer: D3dInterop.ID3D12Resource = null
                 swapChain.GetBuffer(i, typeof<D3dInterop.ID3D12Resource>.GUID, &buffer)
-                device.CreateRenderTargetView(buffer, 0n, rtvHandle)
+                device.CreateRenderTargetView(buffer, 0n, shiftedRtcHandle)
                 buffer
         |]
 
@@ -136,25 +137,25 @@ let loadAssets pipeline =
         readShaderError error
         |> failwith
 
-    (*let mutable inputElementDescs: D3dInterop.D3D12_INPUT_ELEMENT_DESC[] = [|
-            {   
-                SemanticName = "POSITION";
-                SemanticIndex = 0u;
-                Format = D3dInterop.DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT;
-                InputSlot = 0u;
-                AlignedByteOffset = 0u;
-                InputSlotClass = D3dInterop.D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-                InstanceDataStepRate = 0u;
-            }
-            {   
-                SemanticName = "COLOR";
-                SemanticIndex = 0u;
-                Format = D3dInterop.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
-                InputSlot = 0u;
-                AlignedByteOffset = 12u;
-                InputSlotClass = D3dInterop.D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-                InstanceDataStepRate = 0u;
-            }
+    let mutable inputElementDescs: D3dInterop.D3D12_INPUT_ELEMENT_DESC[] = [|
+            D3dInterop.D3D12_INPUT_ELEMENT_DESC(
+                SemanticName = "POSITION",
+                SemanticIndex = 0u,
+                Format = D3dInterop.DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT,
+                InputSlot = 0u,
+                AlignedByteOffset = 0u,
+                InputSlotClass = D3dInterop.D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                InstanceDataStepRate = 0u
+            )
+            D3dInterop.D3D12_INPUT_ELEMENT_DESC(   
+                SemanticName = "COLOR",
+                SemanticIndex = 0u,
+                Format = D3dInterop.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
+                InputSlot = 0u,
+                AlignedByteOffset = 12u,
+                InputSlotClass = D3dInterop.D3D12_INPUT_CLASSIFICATION.D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                InstanceDataStepRate = 0u
+            )
         |]
 
     let getRasterizerState() = 
@@ -163,8 +164,8 @@ let loadAssets pipeline =
         rasterizerState.CullMode <- D3dInterop.D3D12_CULL_MODE.D3D12_CULL_MODE_BACK
         rasterizerState.FrontCounterClockwise <- false
         rasterizerState.DepthBias <- 0
-        rasterizerState.DepthBiasClamp <- 0.0
-        rasterizerState.SlopeScaledDepthBias <- 0.0
+        rasterizerState.DepthBiasClamp <- 0.0f
+        rasterizerState.SlopeScaledDepthBias <- 0.0f
         rasterizerState.DepthClipEnable <- true
         rasterizerState.MultisampleEnable <- false
         rasterizerState.AntialiasedLineEnable <- false
@@ -194,16 +195,19 @@ let loadAssets pipeline =
             ||| D3dInterop.D3D12_COLOR_WRITE_ENABLE.D3D12_COLOR_WRITE_ENABLE_ALPHA
 
         blendState.RenderTarget <- [|
-            for i in 0..7 do
+            for _ in 0..7 do
                 defaultRenderTargetBlendDesc
         |]
 
         blendState
 
-    use firstElPtr = fixed inputElementDescs.[0].SemanticName
+    let structSize = Marshal.SizeOf(inputElementDescs.[0])
+    let marshalledStructLocation = Marshal.AllocHGlobal(2 * structSize)
+    Marshal.StructureToPtr(inputElementDescs.[0], marshalledStructLocation, false)
+    Marshal.StructureToPtr(inputElementDescs.[1], marshalledStructLocation + nativeint structSize, false)
 
     let mutable psoDesc = D3dInterop.D3D12_GRAPHICS_PIPELINE_STATE_DESC()
-    psoDesc.InputLayout.pInputElementDescs <- NativeInterop.NativePtr.toNativeInt(firstElPtr)
+    psoDesc.InputLayout.pInputElementDescs <- marshalledStructLocation
     psoDesc.InputLayout.NumElements <- uint inputElementDescs.Length
     psoDesc.pRootSignature <- rootSignature
     psoDesc.VS.pShaderBytecode <- vertexShader.GetBufferPointer()
@@ -226,8 +230,13 @@ let loadAssets pipeline =
     
     psoDesc.SampleDesc.Count <- 1u
 
+    Console.WriteLine(System.Runtime.InteropServices.Marshal.SizeOf(typeof<D3dInterop.D3D12_GRAPHICS_PIPELINE_STATE_DESC>))
+    Console.WriteLine(System.Runtime.InteropServices.Marshal.SizeOf(typeof<DirectN.D3D12_GRAPHICS_PIPELINE_STATE_DESC>))
+
     let mutable pipelineState: D3dInterop.ID3D12PipelineState = null
-    pipeline.Device.CreateGraphicsPipelineState(&psoDesc, typeof<D3dInterop.ID3D12PipelineState>.GUID, &pipelineState)*)
+    let guid = typeof<D3dInterop.ID3D12PipelineState>.GUID
+    let device = pipeline.Device
+    device.CreateGraphicsPipelineState(&psoDesc, guid, &pipelineState)
 
     ()
     
