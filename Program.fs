@@ -230,9 +230,6 @@ let loadAssets pipeline =
     
     psoDesc.SampleDesc.Count <- 1u
 
-    Console.WriteLine(System.Runtime.InteropServices.Marshal.SizeOf(typeof<D3dInterop.D3D12_GRAPHICS_PIPELINE_STATE_DESC>))
-    Console.WriteLine(System.Runtime.InteropServices.Marshal.SizeOf(typeof<DirectN.D3D12_GRAPHICS_PIPELINE_STATE_DESC>))
-
     let mutable pipelineState: D3dInterop.ID3D12PipelineState = null
     let guid = typeof<D3dInterop.ID3D12PipelineState>.GUID
     let device = pipeline.Device

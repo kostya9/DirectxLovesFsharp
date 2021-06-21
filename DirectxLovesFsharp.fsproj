@@ -19,8 +19,4 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="DirectN" Version="1.9.0.2" />
-  </ItemGroup>
-
 </Project>

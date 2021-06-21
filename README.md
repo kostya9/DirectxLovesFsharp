@@ -10,3 +10,4 @@ My thoughts:
 - Dont trust MSDN - check headers
 - sizeof<> - nice operator to debug struct sizes (if you messed up something)
 - fsharp float=Double, csharp float=Single
+- You cannot just take a pointer to an array - you need to make sure it is marshalled in correct way
