@@ -8,8 +8,35 @@ open System.Runtime.InteropServices
 type D3dPipeline = {
     IsDebug: bool;
     Device: D3dInterop.ID3D12Device;
+    CommandAllocator: D3dInterop.ID3D12CommandAllocator;
 }
 
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type Float3 = {
+    x: single;
+    y: single;
+    z: single;
+}
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type Float4 = {
+    x: single;
+    y: single;
+    z: single;
+    w: single;
+}
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type Vertex = {
+    position: Float3;
+    color: Float4;
+}
+
+let (width, height) = (800u, 600u)
+                       
 let loadPipeline (window: Window) isDebug  =
 
     if isDebug then do
@@ -47,7 +74,6 @@ let loadPipeline (window: Window) isDebug  =
     device.CreateCommandQueue(&desc, typeof<D3dInterop.ID3D12CommandQueue>.GUID, &commandQueue)
     let mutable swapChainDesc = D3dInterop.DXGI_SWAP_CHAIN_DESC1()
     let frameCount = 2u
-    let (width, height) = (800u, 600u)
     swapChainDesc.BufferCount <- frameCount;
     swapChainDesc.Width <- width
     swapChainDesc.Height <- height
@@ -89,7 +115,7 @@ let loadPipeline (window: Window) isDebug  =
     let mutable allocator: D3dInterop.ID3D12CommandAllocator = null
     device.CreateCommandAllocator(D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, typeof<D3dInterop.ID3D12CommandAllocator>.GUID, &allocator)
 
-    { Device = device; IsDebug = true }
+    { Device = device; CommandAllocator = allocator; IsDebug = true }
 
 let loadAssets pipeline = 
     let mutable signatureDesc = D3dInterop.D3D12_ROOT_SIGNATURE_DESC()
@@ -201,6 +227,8 @@ let loadAssets pipeline =
 
         blendState
 
+    // Since we cant marshal the whole array (or idk how to) implicitly as a pointer
+    // We marshal it manually to native memory
     let structSize = Marshal.SizeOf(inputElementDescs.[0])
     let marshalledStructLocation = Marshal.AllocHGlobal(2 * structSize)
     Marshal.StructureToPtr(inputElementDescs.[0], marshalledStructLocation, false)
@@ -234,6 +262,36 @@ let loadAssets pipeline =
     let guid = typeof<D3dInterop.ID3D12PipelineState>.GUID
     let device = pipeline.Device
     device.CreateGraphicsPipelineState(&psoDesc, guid, &pipelineState)
+
+    Marshal.FreeHGlobal(marshalledStructLocation)
+
+    let mutable commandList: D3dInterop.ID3D12GraphicsCommandList = null
+    device.CreateCommandList(0u, 
+        D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, 
+        pipeline.CommandAllocator,
+        pipelineState,
+        typeof<D3dInterop.ID3D12GraphicsCommandList>.GUID,
+        &commandList)
+
+    // CommandList is created in open state, so we reset it
+    commandList.Close()
+
+    let aspectRatio = single width / single height
+    let vertices: Vertex[] = [|
+        {
+            position = { x = 0f; y = 0.25f * aspectRatio; z = 0f };
+            color = { x = 1f; y = 0f; z = 0f; w = 1f }
+        }
+        {
+            position = { x = 0.25f; y = -0.25f * aspectRatio; z = 0f };
+            color = { x = 0f; y = 1f; z = 0f; w = 1f }
+        }
+        {
+            position = { x = -0.25f; y = -0.25f * aspectRatio; z = 0f };
+            color = { x = 0f; y = 0f; z = 1f; w = 1f }
+        }
+    |]
+    let pinnedVertices = GCHandle.Alloc(vertices, GCHandleType.Pinned)
 
     ()
     

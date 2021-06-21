@@ -218,6 +218,42 @@ type D3D12_COMPUTE_PIPELINE_STATE_DESC = unit
 type D3D12_FEATURE = unit
 
 [<AllowNullLiteral>]
+[<Guid("5b160d0f-ac1b-4185-8ba8-b3ae42a5a455")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type ID3D12GraphicsCommandList =
+    abstract member SetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+        DataSize: uint * 
+        pData: IntPtr
+            -> unit
+
+    abstract member SetPrivateDataInterface:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+        pUnknown: IntPtr
+            -> unit
+
+    abstract member GetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+        pDataSize: byref<uint> * pData: nativeint
+            -> unit
+
+    abstract member GetParent:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            -> unit
+
+    abstract member GetDevice:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
+            -> unit
+
+    abstract member GetType:
+        unit -> D3D12_COMMAND_LIST_TYPE
+
+    abstract member Close: 
+        unit -> unit
+
+[<AllowNullLiteral>]
 [<Guid("765a30f3-f624-4c6f-a828-ace948622445")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12PipelineState = interface end
@@ -624,10 +660,10 @@ type ID3D12Device =
     abstract member CreateCommandList:
         nodeMask: uint *
         ``type``: D3D12_COMMAND_LIST_TYPE *
-        pCommandAllocator: byref<ID3D12CommandAllocator> *
-        pInitialState: byref<ID3D12PipelineState> *
+        pCommandAllocator: ID3D12CommandAllocator *
+        pInitialState: ID3D12PipelineState *
         [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppCommandList: byref<Object>
+        ppCommandList: byref<ID3D12GraphicsCommandList>
             -> unit
 
     abstract member CheckFeatureSupport:
