@@ -291,9 +291,57 @@ let loadAssets pipeline =
             color = { x = 0f; y = 0f; z = 1f; w = 1f }
         }
     |]
-    let pinnedVertices = GCHandle.Alloc(vertices, GCHandleType.Pinned)
+    let verticesSize = sizeof<Vertex> * vertices.Length
 
-    //device.CreateCommittedResource()
+    let mutable props = D3dInterop.D3D12_HEAP_PROPERTIES()
+    props.CPUPageProperty <- D3dInterop.D3D12_CPU_PAGE_PROPERTY.D3D12_CPU_PAGE_PROPERTY_UNKNOWN
+    props.MemoryPoolPreference <- D3dInterop.D3D12_MEMORY_POOL.D3D12_MEMORY_POOL_UNKNOWN
+    props.Type <- D3dInterop.D3D12_HEAP_TYPE.D3D12_HEAP_TYPE_UPLOAD
+    props.CreationNodeMask <- 1u
+    props.VisibleNodeMask <- 1u
+
+    let mutable resourceDesc = D3dInterop.D3D12_RESOURCE_DESC()
+    resourceDesc.Dimension <- D3dInterop.D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER
+    resourceDesc.Alignment <- 0UL
+    resourceDesc.Width <- verticesSize |> uint64
+    resourceDesc.Height <- 1u
+    resourceDesc.DepthOrArraySize <- 1us
+    resourceDesc.MipLevels <- 1us
+    resourceDesc.Format <- D3dInterop.DXGI_FORMAT.DXGI_FORMAT_UNKNOWN
+    resourceDesc.SampleDesc.Count <- 1u
+    resourceDesc.SampleDesc.Quality <- 0u
+    resourceDesc.Layout <- D3dInterop.D3D12_TEXTURE_LAYOUT.D3D12_TEXTURE_LAYOUT_ROW_MAJOR
+    resourceDesc.Flags <- D3dInterop.D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE
+
+    let mutable vertexBuffer: D3dInterop.ID3D12Resource = null
+    device.CreateCommittedResource(&props, 
+        D3dInterop.D3D12_HEAP_FLAGS.D3D12_HEAP_FLAG_NONE,
+        &resourceDesc,
+        D3dInterop.KnownResourceStates.D3D12_RESOURCE_STATE_GENERIC_READ,
+        0n,
+        typeof<D3dInterop.ID3D12Resource>.GUID,
+        &vertexBuffer)
+
+    let mutable readRange = D3dInterop.D3D12_RANGE()
+    readRange.Begin <- 0un
+    readRange.End <- 0un
+
+    let mutable pVertexDataBegin = 0n
+    vertexBuffer.Map(0u, &readRange, &pVertexDataBegin)
+    
+    let dataStartPtr = 
+        NativeInterop.NativePtr.ofNativeInt<byte>(pVertexDataBegin)
+        |> NativeInterop.NativePtr.toVoidPtr
+
+    let verticesDataSpan = new Span<Vertex>(dataStartPtr, vertices.Length)
+    vertices.CopyTo(verticesDataSpan)
+
+    vertexBuffer.Unmap(0u, 0n)
+
+    let mutable vertexBufferView = D3dInterop.D3D12_VERTEX_BUFFER_VIEW()
+    vertexBufferView.BufferLocation <- vertexBuffer.GetGPUVirtualAddress()
+    vertexBufferView.SizeInBytes <- verticesSize |> uint
+    vertexBufferView.StrideInBytes <- sizeof<Vertex> |> uint
 
     ()
     

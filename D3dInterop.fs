@@ -167,10 +167,156 @@ type ID3D12CommandQueue = interface end
 [<ComImport>]
 type IDXGISwapChain = interface end
 
+[<StructLayout(LayoutKind.Sequential)>]
+[<Struct>]
+type D3D12_RANGE =
+    val mutable Begin: unativeint
+    val mutable End: unativeint
+
+// Well, at some point I will probably need to specify these
+type D3D12_COMPUTE_PIPELINE_STATE_DESC = unit
+type D3D12_FEATURE = unit
+type D3D12_DEPTH_STENCIL_VIEW_DESC = struct end
+type D3D12_SAMPLER_DESC = struct end
+type D3D12_RESOURCE_ALLOCATION_INFO = struct end
+type D3D12_CLEAR_VALUE = struct end
+type D3D12_HEAP_DESC = struct end
+type ID3D12Heap = interface end
+type ID3D12DeviceChild = interface end
+type SECURITY_ATTRIBUTES = struct end 
+type ID3D12Pageable = interface end
+type D3D12_FENCE_FLAGS = struct end
+
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_VERTEX_BUFFER_VIEW = 
+    val mutable BufferLocation: uint64
+    val mutable SizeInBytes: uint
+    val mutable StrideInBytes: uint
+
+[<Flags>]
+type D3D12_RESOURCE_STATES =
+    | D3D12_RESOURCE_STATE_COMMON = 0
+    | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER = 0x1
+    | D3D12_RESOURCE_STATE_INDEX_BUFFER = 0x2
+    | D3D12_RESOURCE_STATE_RENDER_TARGET = 0x4
+    | D3D12_RESOURCE_STATE_UNORDERED_ACCESS = 0x8
+    | D3D12_RESOURCE_STATE_DEPTH_WRITE = 0x10
+    | D3D12_RESOURCE_STATE_DEPTH_READ = 0x20
+    | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE = 0x40
+    | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE = 0x80
+    | D3D12_RESOURCE_STATE_STREAM_OUT = 0x100
+    | D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT = 0x200
+    | D3D12_RESOURCE_STATE_COPY_DEST = 0x400
+    | D3D12_RESOURCE_STATE_COPY_SOURCE = 0x800
+    | D3D12_RESOURCE_STATE_RESOLVE_DEST = 0x1000
+    | D3D12_RESOURCE_STATE_RESOLVE_SOURCE = 0x2000
+    | D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE = 0x400000
+    | D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE = 0x1000000
+    | D3D12_RESOURCE_STATE_PRESENT = 0
+    | D3D12_RESOURCE_STATE_PREDICATION = 0x200
+    | D3D12_RESOURCE_STATE_VIDEO_DECODE_READ = 0x10000
+    | D3D12_RESOURCE_STATE_VIDEO_DECODE_WRITE = 0x20000
+    | D3D12_RESOURCE_STATE_VIDEO_PROCESS_READ = 0x40000
+    | D3D12_RESOURCE_STATE_VIDEO_PROCESS_WRITE = 0x80000
+    | D3D12_RESOURCE_STATE_VIDEO_ENCODE_READ = 0x200000
+    | D3D12_RESOURCE_STATE_VIDEO_ENCODE_WRITE = 0x800000
+
+module KnownResourceStates = 
+    let D3D12_RESOURCE_STATE_GENERIC_READ = (
+        D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER 
+        ||| D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_INDEX_BUFFER 
+        ||| D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE 
+        ||| D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE 
+        ||| D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT 
+        ||| D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COPY_SOURCE)
+
+type D3D12_RESOURCE_DIMENSION = 
+    | D3D12_RESOURCE_DIMENSION_UNKNOWN = 0
+    | D3D12_RESOURCE_DIMENSION_BUFFER = 1
+    | D3D12_RESOURCE_DIMENSION_TEXTURE1D = 2
+    | D3D12_RESOURCE_DIMENSION_TEXTURE2D = 3
+    | D3D12_RESOURCE_DIMENSION_TEXTURE3D = 4
+
+type D3D12_TEXTURE_LAYOUT = 
+    | D3D12_TEXTURE_LAYOUT_UNKNOWN = 0
+    | D3D12_TEXTURE_LAYOUT_ROW_MAJOR = 1
+    | D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE = 2
+    | D3D12_TEXTURE_LAYOUT_64KB_STANDARD_SWIZZLE = 3
+
+[<Flags>]
+type D3D12_RESOURCE_FLAGS = 
+    | D3D12_RESOURCE_FLAG_NONE = 0
+    | D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET = 0x1
+    | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL = 0x2
+    | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS = 0x4
+    | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE = 0x8
+    | D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER = 0x10
+    | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS = 0x20
+    | D3D12_RESOURCE_FLAG_VIDEO_DECODE_REFERENCE_ONLY = 0x40
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_RESOURCE_DESC = 
+    val mutable Dimension: D3D12_RESOURCE_DIMENSION
+    val mutable Alignment: uint64
+    val mutable Width: uint64
+    val mutable Height: uint
+    val mutable DepthOrArraySize: uint16
+    val mutable MipLevels: uint16
+    val mutable Format: DXGI_FORMAT
+    val mutable SampleDesc: DXGI_SAMPLE_DESC
+    val mutable Layout: D3D12_TEXTURE_LAYOUT
+    val mutable Flags: D3D12_RESOURCE_FLAGS
+
 [<AllowNullLiteral>]
 [<Guid("696442be-a72e-4059-bc79-5b5c98040fad")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
-type ID3D12Resource = interface end
+type ID3D12Resource =
+    abstract member SetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+        DataSize: uint * 
+        pData: IntPtr
+            -> unit
+
+    abstract member SetPrivateDataInterface:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+        pUnknown: IntPtr
+            -> unit
+
+    abstract member GetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+        pDataSize: byref<uint> * pData: nativeint
+            -> unit
+
+    abstract member GetParent:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            -> unit
+
+    abstract member GetDevice:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
+            -> unit
+
+    abstract member Map:
+        Subresource : uint *
+        pReadRange: byref<D3D12_RANGE> *
+        ppData: byref<nativeint> 
+            -> unit
+    
+    abstract member Unmap:
+        Subresource : uint *
+        pWrittenRange: nativeint // byref<D3D12_RANGE>, but idk how to pass nullptr
+            -> unit
+
+    abstract member GetDesc:
+        unit -> D3D12_RESOURCE_DESC
+    
+    [<PreserveSig>]
+    abstract member GetGPUVirtualAddress:
+        unit -> uint64
 
 [<AllowNullLiteral>]
 [<Guid("790a45f7-0d42-4876-983a-0a55cfe6f4aa")>]
@@ -213,24 +359,50 @@ type IDXGISwapChain1 =
         ppSurface: byref<ID3D12Resource>
             -> unit
 
-// Well, at some point I will probably need to specify these
-type D3D12_COMPUTE_PIPELINE_STATE_DESC = unit
-type D3D12_FEATURE = unit
-type D3D12_DEPTH_STENCIL_VIEW_DESC = struct end
-type D3D12_SAMPLER_DESC = struct end
-type D3D12_RESOURCE_DESC = struct end
-type D3D12_RESOURCE_ALLOCATION_INFO = struct end
-type D3D12_HEAP_TYPE = struct end
-type D3D12_HEAP_PROPERTIES = struct end
-type D3D12_HEAP_FLAGS = struct end
-type D3D12_RESOURCE_STATES = struct end
-type D3D12_CLEAR_VALUE = struct end
-type D3D12_HEAP_DESC = struct end
-type ID3D12Heap = interface end
-type ID3D12DeviceChild = interface end
-type SECURITY_ATTRIBUTES = struct end 
-type ID3D12Pageable = interface end
-type D3D12_FENCE_FLAGS = struct end
+
+type D3D12_HEAP_FLAGS = 
+    | D3D12_HEAP_FLAG_NONE = 0
+    | D3D12_HEAP_FLAG_SHARED = 0x1
+    | D3D12_HEAP_FLAG_DENY_BUFFERS = 0x4
+    | D3D12_HEAP_FLAG_ALLOW_DISPLAY = 0x8
+    | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER = 0x20
+    | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES = 0x40
+    | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES = 0x80
+    | D3D12_HEAP_FLAG_HARDWARE_PROTECTED = 0x100
+    | D3D12_HEAP_FLAG_ALLOW_WRITE_WATCH = 0x200
+    | D3D12_HEAP_FLAG_ALLOW_SHADER_ATOMICS = 0x400
+    | D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT = 0x800
+    | D3D12_HEAP_FLAG_CREATE_NOT_ZEROED = 0x1000
+    | D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES = 0
+    | D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS = 0xc0
+    | D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES = 0x44
+    | D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES = 0x84
+
+type D3D12_HEAP_TYPE =
+    | D3D12_HEAP_TYPE_DEFAULT = 1
+    | D3D12_HEAP_TYPE_UPLOAD = 2
+    | D3D12_HEAP_TYPE_READBACK = 3
+    | D3D12_HEAP_TYPE_CUSTOM = 4
+
+type D3D12_CPU_PAGE_PROPERTY = 
+    | D3D12_CPU_PAGE_PROPERTY_UNKNOWN = 0
+    | D3D12_CPU_PAGE_PROPERTY_NOT_AVAILABLE = 1
+    | D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE = 2
+    | D3D12_CPU_PAGE_PROPERTY_WRITE_BACK = 3
+
+type D3D12_MEMORY_POOL = 
+    | D3D12_MEMORY_POOL_UNKNOWN = 0
+    | D3D12_MEMORY_POOL_L0 = 1
+    | D3D12_MEMORY_POOL_L1 = 2
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_HEAP_PROPERTIES =
+    val mutable Type: D3D12_HEAP_TYPE
+    val mutable CPUPageProperty: D3D12_CPU_PAGE_PROPERTY
+    val mutable MemoryPoolPreference: D3D12_MEMORY_POOL
+    val mutable CreationNodeMask: uint
+    val mutable VisibleNodeMask: uint
 
 [<AllowNullLiteral>]
 [<Guid("5b160d0f-ac1b-4185-8ba8-b3ae42a5a455")>]
@@ -773,9 +945,9 @@ type ID3D12Device =
         HeapFlags: D3D12_HEAP_FLAGS *
         pDesc: byref<D3D12_RESOURCE_DESC> *
         InitialResourceState: D3D12_RESOURCE_STATES *
-        pOptimizedClearValue: byref<D3D12_CLEAR_VALUE> *
+        pOptimizedClearValue: nativeint * // How do I pass nullref to byref<D3D12_CLEAR_VALUE>? idk, so nativeint it is
         [<MarshalAs(UnmanagedType.LPStruct)>] riidResource: Guid *
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppvResource: byref<Object>
+        ppvResource: byref<ID3D12Resource>
             -> unit
 
     abstract member CreateHeap:
