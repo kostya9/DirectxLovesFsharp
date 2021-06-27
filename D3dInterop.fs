@@ -216,6 +216,21 @@ type IDXGISwapChain1 =
 // Well, at some point I will probably need to specify these
 type D3D12_COMPUTE_PIPELINE_STATE_DESC = unit
 type D3D12_FEATURE = unit
+type D3D12_DEPTH_STENCIL_VIEW_DESC = struct end
+type D3D12_SAMPLER_DESC = struct end
+type D3D12_RESOURCE_DESC = struct end
+type D3D12_RESOURCE_ALLOCATION_INFO = struct end
+type D3D12_HEAP_TYPE = struct end
+type D3D12_HEAP_PROPERTIES = struct end
+type D3D12_HEAP_FLAGS = struct end
+type D3D12_RESOURCE_STATES = struct end
+type D3D12_CLEAR_VALUE = struct end
+type D3D12_HEAP_DESC = struct end
+type ID3D12Heap = interface end
+type ID3D12DeviceChild = interface end
+type SECURITY_ATTRIBUTES = struct end 
+type ID3D12Pageable = interface end
+type D3D12_FENCE_FLAGS = struct end
 
 [<AllowNullLiteral>]
 [<Guid("5b160d0f-ac1b-4185-8ba8-b3ae42a5a455")>]
@@ -712,6 +727,116 @@ type ID3D12Device =
         pResource: ID3D12Resource * 
         pDesc: nativeint * 
         DestDescriptor: D3D12_CPU_DESCRIPTOR_HANDLE
+            -> unit
+
+    abstract member CreateDepthStencilView:
+        pResource: ID3D12Resource *
+        pDesc: byref<D3D12_DEPTH_STENCIL_VIEW_DESC> *
+        DestDescriptor: D3D12_CPU_DESCRIPTOR_HANDLE
+            -> unit
+    
+    abstract member CreateSampler:
+        pDesc: byref<D3D12_SAMPLER_DESC> *
+        DestDescriptor: D3D12_CPU_DESCRIPTOR_HANDLE
+            -> unit
+    
+    abstract member CopyDescriptors:
+        NumDestDescriptorRanges: uint *
+        pDestDescriptorRangeStarts: byref<D3D12_CPU_DESCRIPTOR_HANDLE> *
+        pDestDescriptorRangeSizes: byref<uint> *
+        NumSrcDescriptorRanges: uint *
+        pSrcDescriptorRangeStarts: byref<D3D12_CPU_DESCRIPTOR_HANDLE> *
+        pSrcDescriptorRangeSizes: byref<uint> *
+        DescriptorHeapsType: D3D12_DESCRIPTOR_HEAP_TYPE
+            -> unit;
+    
+    abstract member CopyDescriptorsSimple:
+        NumDescriptors: uint *
+        DestDescriptorRangeStart: D3D12_CPU_DESCRIPTOR_HANDLE *
+        SrcDescriptorRangeStart: D3D12_CPU_DESCRIPTOR_HANDLE *
+        DescriptorHeapsType: D3D12_DESCRIPTOR_HEAP_TYPE
+            -> unit;
+    
+    abstract member GetResourceAllocationInfo:
+        visibleMask: uint *
+        numResourceDescs: uint *
+        pResourceDescs: byref<D3D12_RESOURCE_DESC>
+            -> D3D12_RESOURCE_ALLOCATION_INFO
+    
+    abstract member GetCustomHeapProperties:
+        Mask: uint *
+        heapType: D3D12_HEAP_TYPE
+            -> D3D12_HEAP_PROPERTIES
+    
+    abstract member CreateCommittedResource:
+        pHeapProperties: byref<D3D12_HEAP_PROPERTIES> *
+        HeapFlags: D3D12_HEAP_FLAGS *
+        pDesc: byref<D3D12_RESOURCE_DESC> *
+        InitialResourceState: D3D12_RESOURCE_STATES *
+        pOptimizedClearValue: byref<D3D12_CLEAR_VALUE> *
+        [<MarshalAs(UnmanagedType.LPStruct)>] riidResource: Guid *
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppvResource: byref<Object>
+            -> unit
+
+    abstract member CreateHeap:
+        pDesc: byref<D3D12_HEAP_DESC> *
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppvHeap: byref<Object>
+            -> unit
+    
+    abstract member CreatePlacedResource:
+        pHeap: ID3D12Heap *
+        HeapOffset: uint64 *
+        pDesc: byref<D3D12_RESOURCE_DESC> *
+        InitialState: D3D12_RESOURCE_STATES *
+        pOptimizedClearValue: byref<D3D12_CLEAR_VALUE> *
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppvResource: byref<Object>
+            -> unit
+    
+    abstract member CreateReservedResource:
+        pDesc: byref<D3D12_RESOURCE_DESC> *
+        InitialState: D3D12_RESOURCE_STATES *
+        pOptimizedClearValue: byref<D3D12_CLEAR_VALUE> *
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppvResource: byref<Object>
+            -> unit
+    
+    abstract member CreateSharedHandle:
+        pObject: byref<ID3D12DeviceChild> *
+        pAttributes: byref<SECURITY_ATTRIBUTES> *
+        Access: uint *
+        [<MarshalAs(UnmanagedType.LPWStr)>] Name: string *
+        pHandle: byref<WinInterop.Handle>
+            -> unit
+    
+    abstract member OpenSharedHandle:
+        NTHandle: WinInterop.Handle *
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppvObj: byref<Object>
+            -> unit
+    
+    abstract member OpenSharedHandleByName:
+        [<MarshalAs(UnmanagedType.LPWStr)>] Name: string *
+        Access: uint *
+        pNTHandle: byref<WinInterop.Handle>
+            -> unit
+    
+    abstract member MakeResident:
+        NumObjects: uint *
+        ppObjects: ID3D12Pageable
+            -> unit
+    
+    abstract member Evict:
+        NumObjects: uint *
+        ppObjects: ID3D12Pageable
+            -> unit
+    
+    abstract member CreateFence:
+        InitialValue: uint64 *
+        Flags: D3D12_FENCE_FLAGS *
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppFence: byref<Object>
             -> unit
 
 [<AllowNullLiteral>]

@@ -293,6 +293,8 @@ let loadAssets pipeline =
     |]
     let pinnedVertices = GCHandle.Alloc(vertices, GCHandleType.Pinned)
 
+    //device.CreateCommittedResource()
+
     ()
     
 
