@@ -303,7 +303,7 @@ type ID3D12Resource =
     abstract member Map:
         Subresource : uint *
         pReadRange: byref<D3D12_RANGE> *
-        ppData: byref<nativeint> 
+        ppData: byref<voidptr> 
             -> unit
     
     abstract member Unmap:

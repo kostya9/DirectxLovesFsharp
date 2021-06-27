@@ -326,14 +326,10 @@ let loadAssets pipeline =
     readRange.Begin <- 0un
     readRange.End <- 0un
 
-    let mutable pVertexDataBegin = 0n
+    let mutable pVertexDataBegin = Unchecked.defaultof<voidptr>
     vertexBuffer.Map(0u, &readRange, &pVertexDataBegin)
-    
-    let dataStartPtr = 
-        NativeInterop.NativePtr.ofNativeInt<byte>(pVertexDataBegin)
-        |> NativeInterop.NativePtr.toVoidPtr
 
-    let verticesDataSpan = new Span<Vertex>(dataStartPtr, vertices.Length)
+    let verticesDataSpan = new Span<Vertex>(pVertexDataBegin, vertices.Length)
     vertices.CopyTo(verticesDataSpan)
 
     vertexBuffer.Unmap(0u, 0n)
