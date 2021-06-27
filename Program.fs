@@ -339,6 +339,14 @@ let loadAssets pipeline =
     vertexBufferView.SizeInBytes <- verticesSize |> uint
     vertexBufferView.StrideInBytes <- sizeof<Vertex> |> uint
 
+    let mutable fence: D3dInterop.ID3D12Fence = null
+    device.CreateFence(0UL, 
+        D3dInterop.D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE,
+        typeof<D3dInterop.ID3D12Fence>.GUID,
+        &fence)
+
+    let fenceEvent = WinInterop.External.CreateEventW(null, false, false, null)
+
     ()
     
 

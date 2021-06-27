@@ -101,6 +101,13 @@
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
         extern bool DispatchMessageA(MSG& messages)
 
+        [<DllImport("kernel32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
+        extern Handle CreateEventW(
+            Object lpEventAttributes,
+            bool bManualReset,
+            bool bInitialState,
+            [<MarshalAs(UnmanagedType.LPWStr)>] string lpName)
+
 
     type WindowProc = delegate of nativeint * unativeint * nativeint * nativeint -> nativeint
 

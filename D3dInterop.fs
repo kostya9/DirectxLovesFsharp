@@ -185,7 +185,56 @@ type ID3D12Heap = interface end
 type ID3D12DeviceChild = interface end
 type SECURITY_ATTRIBUTES = struct end 
 type ID3D12Pageable = interface end
-type D3D12_FENCE_FLAGS = struct end
+
+[<Flags>]
+type D3D12_FENCE_FLAGS =
+    | D3D12_FENCE_FLAG_NONE = 0
+    | D3D12_FENCE_FLAG_SHARED = 0x1
+    | D3D12_FENCE_FLAG_SHARED_CROSS_ADAPTER = 0x2
+    | D3D12_FENCE_FLAG_NON_MONITORED = 0x4
+
+
+[<AllowNullLiteral>]
+[<Guid("0a753dcf-c4d8-4b91-adf6-be5a60d95a76")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type ID3D12Fence =
+    abstract member SetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+        DataSize: uint * 
+        pData: IntPtr
+            -> unit
+
+    abstract member SetPrivateDataInterface:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+        pUnknown: IntPtr
+            -> unit
+
+    abstract member GetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+        pDataSize: byref<uint> * pData: nativeint
+            -> unit
+
+    abstract member GetParent:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            -> unit
+
+    abstract member GetDevice:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
+            -> unit
+
+    [<PreserveSig>]
+    abstract member GetCompletedValue:
+        unit -> uint64
+    
+    abstract member SetEventOnCompletion:
+        Value: uint64 *
+        hEvent: WinInterop.Handle
+            -> unit
+    
+    abstract member Signal:
+        Value: uint64 -> unit
 
 
 [<Struct>]
@@ -1008,7 +1057,7 @@ type ID3D12Device =
         InitialValue: uint64 *
         Flags: D3D12_FENCE_FLAGS *
         [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppFence: byref<Object>
+        ppFence: byref<ID3D12Fence>
             -> unit
 
 [<AllowNullLiteral>]
