@@ -9,6 +9,7 @@ type D3dPipeline = {
     IsDebug: bool;
     Device: D3dInterop.ID3D12Device;
     CommandAllocator: D3dInterop.ID3D12CommandAllocator;
+    CommandQueue: D3dInterop.ID3D12CommandQueue;
 }
 
 [<Struct>]
@@ -115,9 +116,15 @@ let loadPipeline (window: Window) isDebug  =
     let mutable allocator: D3dInterop.ID3D12CommandAllocator = null
     device.CreateCommandAllocator(D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, typeof<D3dInterop.ID3D12CommandAllocator>.GUID, &allocator)
 
-    { Device = device; CommandAllocator = allocator; IsDebug = true }
+    { Device = device; CommandAllocator = allocator; IsDebug = true; CommandQueue = commandQueue }
 
-let loadAssets pipeline = 
+type D3dAssets = {
+    Fence: D3dInterop.ID3D12Fence;
+    FenceEvent: WinInterop.Handle;
+    Pipeline: D3dPipeline;
+}
+
+let loadAssets (pipeline): D3dAssets = 
     let mutable signatureDesc = D3dInterop.D3D12_ROOT_SIGNATURE_DESC()
     signatureDesc.Flags <- D3dInterop.D3D12_ROOT_SIGNATURE_FLAGS.D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 
@@ -347,25 +354,33 @@ let loadAssets pipeline =
 
     let fenceEvent = WinInterop.External.CreateEventW(null, false, false, null)
 
-    ()
+    {
+        Pipeline = pipeline; 
+        Fence = fence;
+        FenceEvent = fenceEvent
+    }
     
 
 let init() =
     let window = WinInterop.makeWindow()
 
     let isDebug = true
-    loadPipeline window isDebug
-    |> loadAssets
+    let assets = 
+        loadPipeline window isDebug
+        |> loadAssets
 
     ()
 
-let update() = 
+let waitForNextFrame(assets: D3dAssets) = 
+    assets.Pipeline.CommandQueue.
+
+let update(assets: D3dAssets) = 
     ()
 
-let render() =
+let render(assets: D3dAssets) =
     ()
 
-let destroy() = 
+let destroy(assets: D3dAssets) = 
     ()
 
 [<EntryPoint>]
