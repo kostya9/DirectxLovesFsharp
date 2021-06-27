@@ -10,6 +10,9 @@ type D3dPipeline = {
     Device: D3dInterop.ID3D12Device;
     CommandAllocator: D3dInterop.ID3D12CommandAllocator;
     CommandQueue: D3dInterop.ID3D12CommandQueue;
+    SwapChain : D3dInterop.IDXGISwapChain1;
+    RtvDescriptors: D3dInterop.ID3D12Resource[];
+    Heap: D3dInterop.ID3D12DescriptorHeap;
 }
 
 [<Struct>]
@@ -116,12 +119,29 @@ let loadPipeline (window: Window) isDebug  =
     let mutable allocator: D3dInterop.ID3D12CommandAllocator = null
     device.CreateCommandAllocator(D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, typeof<D3dInterop.ID3D12CommandAllocator>.GUID, &allocator)
 
-    { Device = device; CommandAllocator = allocator; IsDebug = true; CommandQueue = commandQueue }
+    { 
+        Device = device; 
+        IsDebug = true;
+        CommandAllocator = allocator; 
+        CommandQueue = commandQueue;
+        SwapChain = swapChain;
+        RtvDescriptors = rtvDescriptors;
+        Heap = heap;
+    }
 
 type D3dAssets = {
     Fence: D3dInterop.ID3D12Fence;
     FenceEvent: WinInterop.Handle;
     Pipeline: D3dPipeline;
+    VertexBuffer: D3dInterop.ID3D12Resource;
+    VertexShader: D3dInterop.ID3DBlob;
+    PixelShader: D3dInterop.ID3DBlob;
+    PipelineState: D3dInterop.ID3D12PipelineState;
+}
+
+type D3dRenderingState = {
+    Assets: D3dAssets;
+    FenceValue: uint64;
 }
 
 let loadAssets (pipeline): D3dAssets = 
@@ -355,37 +375,86 @@ let loadAssets (pipeline): D3dAssets =
     let fenceEvent = WinInterop.External.CreateEventW(null, false, false, null)
 
     {
+        VertexBuffer = vertexBuffer;
+        VertexShader = vertexShader;
+        PixelShader = pixelShader;
         Pipeline = pipeline; 
         Fence = fence;
-        FenceEvent = fenceEvent
+        FenceEvent = fenceEvent;
+        PipelineState = pipelineState;
     }
     
 
-let init() =
-    let window = WinInterop.makeWindow()
+let infiniteTimeout = 0xFFFFFFFFu
+let waitForNextFrame renderState = 
+    let fence = renderState.Assets.Fence
+    let fenceEvent = renderState.Assets.FenceEvent
+    let fenceValue = renderState.FenceValue
+    let commandQueue = renderState.Assets.Pipeline.CommandQueue
+    commandQueue.Signal(fence, fenceValue)
+
+    if fence.GetCompletedValue() < fenceValue then do
+        fence.SetEventOnCompletion(fenceValue, fenceEvent)
+        WinInterop.External.WaitForSingleObject(fenceEvent, infiniteTimeout) 
+
+    { renderState with FenceValue = fenceValue + 1UL }
+
+let update(assets) =
+    assets
+
+let render(assets) =
+    assets
+
+let destroy(assets) = 
+    ()
+
+let (|Field|_|) field x = if field = x then Some () else None
+
+type WindowsCallbackState =
+    val mutable renderingState: D3dRenderingState option
+
+    member this.State = this.renderingState |> Option.get
+
+    new() = { renderingState = None }
+
+let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg: unativeint) (wParam: nativeint) (lParam: nativeint) =
+    match uMsg with
+    | Field WinInterop.WindowMsgType.WM_CREATE ->
+        0n
+
+    | Field WinInterop.WindowMsgType.WM_PAINT ->  
+        callbackState.renderingState <- 
+            callbackState.renderingState
+            |> Option.get
+            |> update
+            |> render
+            |> Some
+
+        0n
+    | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
+
+let mutable renderingState: D3dRenderingState = Unchecked.defaultof<_>
+
+let init(state: WindowsCallbackState) =
+    let callbackDelegate = WinInterop.WindowProc(windowCallback state)
+    let window = WinInterop.makeWindow callbackDelegate
 
     let isDebug = true
-    let assets = 
+    renderingState <-
         loadPipeline window isDebug
         |> loadAssets
+        |> fun assets -> { Assets = assets; FenceValue = 0UL }
+        |> waitForNextFrame
 
-    ()
+    state.renderingState <- Some renderingState
 
-let waitForNextFrame(assets: D3dAssets) = 
-    assets.Pipeline.CommandQueue.
-
-let update(assets: D3dAssets) = 
-    ()
-
-let render(assets: D3dAssets) =
-    ()
-
-let destroy(assets: D3dAssets) = 
-    ()
+    WinInterop.showWindow window
+    window
 
 [<EntryPoint>]
 let main argv =
-    init()
+    let state = WindowsCallbackState()
+    let window = init(state)
 
     let mutable messages: WinInterop.External.MSG = WinInterop.External.MSG()
     // Run the message loop. It will run until GetMessage() returns 0

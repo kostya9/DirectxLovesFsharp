@@ -7,12 +7,28 @@
     type Handle = nativeint
 
     type Window(handle: HWND, windowCallback: Delegate) = 
-        let _windowCallback = windowCallback
-
+        member this.WinCallback = windowCallback
         member this.Handle = handle
 
     [<RequireQualifiedAccess>]
     module External =
+
+        [<Struct>]
+        [<StructLayout(LayoutKind.Sequential)>]
+        type CREATESTRUCTW = 
+            val mutable lpCreateParams: nativeint
+            val mutable hInstance: Handle
+            val mutable hMenu: Handle
+            val mutable hwndParent: Handle
+            val mutable cy: int
+            val mutable cx: int
+            val mutable y: int
+            val mutable x: int
+            val mutable style: int
+            [<MarshalAs(UnmanagedType.LPWStr)>] val mutable lpszName: string
+            [<MarshalAs(UnmanagedType.LPWStr)>] val mutable lpszClass: string
+            val mutable dwExStyle: uint
+            
 
         [<Flags>]
         type WindowStyles = 
@@ -108,20 +124,25 @@
             bool bInitialState,
             [<MarshalAs(UnmanagedType.LPWStr)>] string lpName)
 
+        [<DllImport("kernel32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
+        extern unit WaitForSingleObject(Handle hHandle, uint dwMilliseconds)
+
+        [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
+        extern unit SetWindowLongPtrW(Handle hWNd, int nIndex, nativeint dwNewLong)
+
+        [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
+        extern voidptr GetWindowLongPtrW(Handle hWNd, int nIndex)
+
 
     type WindowProc = delegate of nativeint * unativeint * nativeint * nativeint -> nativeint
 
-    type WindowMsgType = 
-    | WM_PAINT
+    module WindowMsgType =
+        let WM_CREATE = 0x0001un
+        let WM_PAINT = 0x000Fun
 
-    let windowCallback (hwnd: nativeint) (uMsg: unativeint) (wParam: nativeint) (lParam: nativeint) = 
-        match uMsg with
-        | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
+    let makeWindow(callback: WindowProc) =
 
-    let windowDelegate = WindowProc(windowCallback)
-    let windowCallbackPointer = Marshal.GetFunctionPointerForDelegate windowDelegate
-
-    let makeWindow() =
+        let windowCallbackPointer = Marshal.GetFunctionPointerForDelegate callback
 
         let thisInstance = Marshal.GetHINSTANCE(System.Reflection.Assembly.GetEntryAssembly().Modules |> Seq.head)
 
@@ -138,13 +159,15 @@
             let error = Marshal.GetLastWin32Error()
             failwith $"RegisterClassEx Win32 error = {error}"
 
-        let style = External.CombinedWindowStyle.WS_OVERLAPPEDWINDOW ||| External.WindowStyle.WS_VISIBLE
+        let style = External.CombinedWindowStyle.WS_OVERLAPPEDWINDOW
         let windowHwnd = External.CreateWindowExA(0un, className, "Hello", style, 0n, 0n, 800n, 600n, 0n, 0n, thisInstance, 0n)
 
         if windowHwnd = 0n then do
             let error = Marshal.GetLastWin32Error()
             failwith $"CreateWindowExA error = {error}"
 
-        External.ShowWindow(windowHwnd, 1)
-        External.UpdateWindow(windowHwnd)
-        Window(windowHwnd, windowDelegate)
+        Window(windowHwnd, callback)
+
+    let showWindow(window: Window) =
+        External.ShowWindow(window.Handle, 1)
+        External.UpdateWindow(window.Handle)

@@ -158,11 +158,6 @@ type ID3D12Debug =
 type IDXGIAdapter = interface end
 
 [<AllowNullLiteral>]
-[<Guid("0ec870a6-5d7e-4c22-8cfc-5baae07616ed")>]
-[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
-type ID3D12CommandQueue = interface end
-
-[<AllowNullLiteral>]
 [<Guid("310d36a0-d2e7-4c0a-aa04-6a9d23b8886a")>]
 [<ComImport>]
 type IDXGISwapChain = interface end
@@ -185,6 +180,12 @@ type ID3D12Heap = interface end
 type ID3D12DeviceChild = interface end
 type SECURITY_ATTRIBUTES = struct end 
 type ID3D12Pageable = interface end
+
+type D3D12_TILED_RESOURCE_COORDINATE = struct end
+type D3D12_TILE_REGION_SIZE = struct end
+type D3D12_TILE_RANGE_FLAGS = struct end
+type D3D12_TILE_MAPPING_FLAGS = struct end
+type ID3D12CommandList = interface end
 
 [<Flags>]
 type D3D12_FENCE_FLAGS =
@@ -528,6 +529,88 @@ type D3D12_ROOT_SIGNATURE_DESC =
 [<Guid("6102dee4-af59-4b09-b999-b44d73f09b24")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12CommandAllocator = interface end
+
+[<AllowNullLiteral>]
+[<Guid("0ec870a6-5d7e-4c22-8cfc-5baae07616ed")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type ID3D12CommandQueue =
+    abstract member SetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+        DataSize: uint * 
+        pData: IntPtr
+            -> unit
+
+    abstract member SetPrivateDataInterface:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+        pUnknown: IntPtr
+            -> unit
+
+    abstract member GetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+        pDataSize: byref<uint> * pData: nativeint
+            -> unit
+
+    abstract member GetParent:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            -> unit
+
+    abstract member GetDevice:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
+            -> unit
+
+    abstract member UpdateTileMappings:
+        pResource: ID3D12Resource *
+        NumResourceRegions: uint *
+        pResourceRegionStartCoordinates: byref<D3D12_TILED_RESOURCE_COORDINATE> *
+        pResourceRegionSizes: byref<D3D12_TILE_REGION_SIZE> *
+        pHeap: byref<ID3D12Heap> *
+        NumRanges: uint *
+        pRangeFlags: byref<D3D12_TILE_RANGE_FLAGS> *
+        pHeapRangeStartOffsets: byref<uint> *
+        pRangeTileCounts: byref<uint> *
+        Flags: D3D12_TILE_MAPPING_FLAGS
+            -> unit
+    
+    abstract member CopyTileMappings:
+        pDstResource: ID3D12Resource *
+        pDstRegionStartCoordinate: byref<D3D12_TILED_RESOURCE_COORDINATE> *
+        pSrcResource: ID3D12Resource *
+        pSrcRegionStartCoordinate: byref<D3D12_TILED_RESOURCE_COORDINATE> *
+        pRegionSize: byref<D3D12_TILE_REGION_SIZE> *
+        Flags: D3D12_TILE_MAPPING_FLAGS
+            -> unit
+    
+    abstract member ExecuteCommandLists:
+        NumCommandLists: uint *
+        [<MarshalAs(UnmanagedType.ByValArray)>] ppCommandLists: ID3D12CommandList[]
+            -> unit
+    
+    abstract member SetMarker:
+        Metadata: uint *
+        pData: voidptr *
+        Size: uint
+            -> unit
+    
+    abstract member BeginEvent:
+        Metadata: uint *
+        pData: voidptr *
+        Size: uint
+            -> unit
+    
+    abstract member EndEvent:
+        unit -> unit
+    
+    abstract member Signal:
+        pFence: ID3D12Fence *
+        Value: uint64
+            -> unit
+    
+    abstract member Wait:
+        pFence: ID3D12Fence *
+        Value: uint64
+            -> unit
 
 type D3D12_DESCRIPTOR_HEAP_TYPE = 
     | D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV = 0
