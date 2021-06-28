@@ -12,8 +12,10 @@ type D3dPipeline = {
     CommandQueue: D3dInterop.ID3D12CommandQueue;
     SwapChain : D3dInterop.IDXGISwapChain1;
     RtvDescriptors: D3dInterop.ID3D12Resource[];
+    RtvDescriptorSize: unativeint;
     Heap: D3dInterop.ID3D12DescriptorHeap;
     Factory: D3dInterop.IDXGIFactory2;
+    DebugLayer: D3dInterop.ID3D12Debug;
 }
 
 [<Struct>]
@@ -44,13 +46,12 @@ let (width, height) = (800u, 600u)
                        
 let loadPipeline (window: Window) isDebug  =
 
+    let mutable debugLayer: D3dInterop.ID3D12Debug = null
     if isDebug then do
-        let mutable debugLayer: D3dInterop.ID3D12Debug = null
         let mutable result = 0un
         D3dInterop.D3D12GetDebugInterface(typeof<D3dInterop.ID3D12Debug>.GUID, &debugLayer)
         if result <> 0un then do failwith $"Got result {result}"
         debugLayer.EnableDebugLayer()
-        Marshal.ReleaseComObject(debugLayer) |> ignore
 
     let mutable factory: D3dInterop.IDXGIFactory2 = null
     D3dInterop.CreateDXGIFactory2(0x01u, typeof<D3dInterop.IDXGIFactory2>.GUID, &factory)
@@ -130,6 +131,8 @@ let loadPipeline (window: Window) isDebug  =
         RtvDescriptors = rtvDescriptors;
         Heap = heap;
         Factory = factory;
+        RtvDescriptorSize = rtvDescriptorSize;
+        DebugLayer = debugLayer
     }
 
 type D3dAssets = {
@@ -138,14 +141,17 @@ type D3dAssets = {
     Pipeline: D3dPipeline;
     VertexBuffer: D3dInterop.ID3D12Resource;
     VertexShader: D3dInterop.ID3DBlob;
+    VertexBufferView: D3dInterop.D3D12_VERTEX_BUFFER_VIEW;
     PixelShader: D3dInterop.ID3DBlob;
     PipelineState: D3dInterop.ID3D12PipelineState;
     CommandList: D3dInterop.ID3D12GraphicsCommandList;
+    RootSignature: D3dInterop.ID3D12RootSignature;
 }
 
 type D3dRenderingState = {
     Assets: D3dAssets;
     FenceValue: uint64;
+    FrameIdx: int;
 }
 
 let loadAssets (pipeline): D3dAssets = 
@@ -379,6 +385,7 @@ let loadAssets (pipeline): D3dAssets =
     let fenceEvent = WinInterop.External.CreateEventW(null, false, false, null)
 
     {
+        VertexBufferView = vertexBufferView;
         VertexBuffer = vertexBuffer;
         VertexShader = vertexShader;
         PixelShader = pixelShader;
@@ -387,6 +394,7 @@ let loadAssets (pipeline): D3dAssets =
         FenceEvent = fenceEvent;
         PipelineState = pipelineState;
         CommandList = commandList;
+        RootSignature = rootSignature;
     }
     
 
@@ -400,9 +408,62 @@ let populateCommandList renderState =
     let commandList = renderState.Assets.CommandList
     commandList.Reset(commandAllocator, pso)
 
+    let rootSignature = renderState.Assets.RootSignature
+    commandList.SetGraphicsRootSignature(rootSignature)
 
+    let mutable viewPort = D3dInterop.D3D12_VIEWPORT()
+    commandList.RSSetViewports(1u, &viewPort)
 
+    let mutable scissorRect = D3dInterop.D3D12_RECT()
+    commandList.RSSetScissorRects(1u, &scissorRect)
 
+    let frameIdx = renderState.FrameIdx
+    let renderTarget = renderState.Assets.Pipeline.RtvDescriptors.[frameIdx]
+    let renderTargetPtr = Marshal.GetComInterfaceForObject<D3dInterop.ID3D12Resource, D3dInterop.ID3D12Resource>(renderTarget)
+
+    let mutable startBarrier = D3dInterop.D3D12_RESOURCE_BARRIER()
+    startBarrier.Type <- D3dInterop.D3D12_RESOURCE_BARRIER_TYPE.D3D12_RESOURCE_BARRIER_TYPE_TRANSITION
+    startBarrier.Flags <- D3dInterop.D3D12_RESOURCE_BARRIER_FLAGS.D3D12_RESOURCE_BARRIER_FLAG_NONE
+    startBarrier.Union.Transition.pResource <- renderTargetPtr
+    startBarrier.Union.Transition.StateBefore <- D3dInterop.D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_PRESENT
+    startBarrier.Union.Transition.StateAfter <- D3dInterop.D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_RENDER_TARGET
+
+    let allSubresources = 0xffffffffu
+    startBarrier.Union.Transition.Subresource <- allSubresources
+    commandList.ResourceBarrier(1u, &startBarrier)
+
+    let heap = renderState.Assets.Pipeline.Heap
+    let mutable rtvHandle = D3dInterop.D3D12_CPU_DESCRIPTOR_HANDLE()
+    heap.GetCPUDescriptorHandleForHeapStart(&rtvHandle)
+
+    let rtvDescriptorSize = renderState.Assets.Pipeline.RtvDescriptorSize
+    let offset = unativeint frameIdx * rtvDescriptorSize
+    rtvHandle.ptr <- rtvHandle.ptr + nativeint offset
+    commandList.OMSetRenderTargets(1u, &rtvHandle, false, 0n)
+
+    let clearColor = [| 0.0f; 0.2f; 0.4f; 1.0f |]
+    commandList.ClearRenderTargetView(rtvHandle, clearColor, 0u, 0n)
+
+    commandList.IASetPrimitiveTopology(D3dInterop.D3D12_PRIMITIVE_TOPOLOGY.D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+    commandList.IASetVertexBuffers(0u, 1u, &renderState.Assets.VertexBufferView)
+    commandList.DrawInstanced(3u, 1u, 0u, 0u)
+
+    
+
+    let mutable endBarrier = D3dInterop.D3D12_RESOURCE_BARRIER()
+    endBarrier.Type <- D3dInterop.D3D12_RESOURCE_BARRIER_TYPE.D3D12_RESOURCE_BARRIER_TYPE_TRANSITION
+    endBarrier.Flags <- D3dInterop.D3D12_RESOURCE_BARRIER_FLAGS.D3D12_RESOURCE_BARRIER_FLAG_NONE
+    endBarrier.Union.Transition.pResource <- renderTargetPtr
+    endBarrier.Union.Transition.StateBefore <- D3dInterop.D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_RENDER_TARGET
+    endBarrier.Union.Transition.StateAfter <- D3dInterop.D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_PRESENT
+
+    let allSubresources = 0xffffffffu
+    endBarrier.Union.Transition.Subresource <- allSubresources
+    commandList.ResourceBarrier(1u, &endBarrier)
+
+    commandList.Close()
+
+    ()
 
 let waitForNextFrame renderState = 
     let fence = renderState.Assets.Fence
@@ -415,13 +476,27 @@ let waitForNextFrame renderState =
         fence.SetEventOnCompletion(fenceValue, fenceEvent)
         WinInterop.External.WaitForSingleObject(fenceEvent, infiniteTimeout) 
 
-    { renderState with FenceValue = fenceValue + 1UL }
+    let frameIndex = (renderState.FrameIdx + 1) % 2 // TODO: Query SwapChain for next backBuffer index
 
-let update(assets) =
-    assets
+    { renderState with FenceValue = fenceValue + 1UL; FrameIdx = frameIndex }
 
-let render(assets) =
-    assets
+let update(renderState) =
+    renderState
+
+let render(renderState) =
+    populateCommandList(renderState) |> ignore
+
+    // Execute the command list.
+    let commandList = renderState.Assets.CommandList
+    let commandList: D3dInterop.ID3D12CommandList[] = [| commandList |]
+
+    let commandQueue = renderState.Assets.Pipeline.CommandQueue
+    commandQueue.ExecuteCommandLists(1u, commandList);
+
+    // Present the frame.
+    renderState.Assets.Pipeline.SwapChain.Present(1u, 0u)
+
+    waitForNextFrame(renderState)
 
 let destroy(assets) = 
     ()
@@ -461,7 +536,7 @@ let init(state: WindowsCallbackState) =
     renderingState <-
         loadPipeline window isDebug
         |> loadAssets
-        |> fun assets -> { Assets = assets; FenceValue = 0UL }
+        |> fun assets -> { Assets = assets; FenceValue = 0UL; FrameIdx = 1 }
         |> waitForNextFrame
 
     state.renderingState <- Some renderingState

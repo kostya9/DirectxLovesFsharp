@@ -185,6 +185,10 @@ type D3D12_TILED_RESOURCE_COORDINATE = struct end
 type D3D12_TILE_REGION_SIZE = struct end
 type D3D12_TILE_RANGE_FLAGS = struct end
 type D3D12_TILE_MAPPING_FLAGS = struct end
+
+[<AllowNullLiteral>]
+[<Guid("7116d91c-e7e4-47ce-b8c6-ec8168f437e5")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12CommandList = interface end
 
 [<Flags>]
@@ -577,7 +581,7 @@ type ID3D12CommandQueue =
     
     abstract member ExecuteCommandLists:
         NumCommandLists: uint *
-        [<MarshalAs(UnmanagedType.ByValArray)>] ppCommandLists: ID3D12CommandList[]
+        [<MarshalAs(UnmanagedType.LPArray)>] ppCommandLists: ID3D12CommandList[]
             -> unit
     
     abstract member SetMarker:
@@ -683,10 +687,82 @@ type ID3D12RootSignature = interface end
 type D3D12_TEXTURE_COPY_LOCATION = struct end
 type D3D12_BOX = struct end
 type D3D12_TILE_COPY_FLAGS = struct end
-type D3D12_PRIMITIVE_TOPOLOGY = struct end
-type D3D12_RECT = struct end
-type D3D12_VIEWPORT = struct end
-type D3D12_RESOURCE_BARRIER = struct end
+
+type D3D12_PRIMITIVE_TOPOLOGY = 
+    | D3D_PRIMITIVE_TOPOLOGY_UNDEFINED = 0
+    | D3D_PRIMITIVE_TOPOLOGY_POINTLIST = 1
+    | D3D_PRIMITIVE_TOPOLOGY_LINELIST = 2
+    | D3D_PRIMITIVE_TOPOLOGY_LINESTRIP = 3
+    | D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST = 4
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_RECT =
+    val mutable left: int
+    val mutable top: int
+    val mutable right: int
+    val mutable bottom: int
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_VIEWPORT =
+    val mutable TopLeftX: single
+    val mutable TopLeftY: single
+    val mutable Width: single
+    val mutable Height: single
+    val mutable MinDepth: single
+    val mutable MaxDepth: single
+
+type D3D12_RESOURCE_BARRIER_TYPE = 
+    | D3D12_RESOURCE_BARRIER_TYPE_TRANSITION = 0
+    | D3D12_RESOURCE_BARRIER_TYPE_ALIASING = 1
+    | D3D12_RESOURCE_BARRIER_TYPE_UAV = 2
+
+type D3D12_RESOURCE_BARRIER_FLAGS =
+    | D3D12_RESOURCE_BARRIER_FLAG_NONE = 0
+    | D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY = 0x1
+    | D3D12_RESOURCE_BARRIER_FLAG_END_ONLY = 0x2
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_RESOURCE_TRANSITION_BARRIER = 
+    val mutable pResource: nativeint
+    val mutable Subresource: uint
+    val mutable StateBefore: D3D12_RESOURCE_STATES
+    val mutable StateAfter: D3D12_RESOURCE_STATES
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_RESOURCE_ALIASING_BARRIER = 
+    val mutable pResourceBefore: nativeint
+    val mutable pResourceAfter: nativeint
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_RESOURCE_UAV_BARRIER = 
+    val mutable pResource: nativeint
+
+[<Struct>]
+[<StructLayout(LayoutKind.Explicit, Pack = 0)>]
+type D3D12_RESOURCE_BARRIER_Union = 
+    [<FieldOffset(0)>]
+    val mutable Transition: D3D12_RESOURCE_TRANSITION_BARRIER
+
+    [<FieldOffset(0)>]
+    val mutable Aliasing: D3D12_RESOURCE_ALIASING_BARRIER
+
+    [<FieldOffset(0)>]
+    val mutable UAV: D3D12_RESOURCE_UAV_BARRIER
+
+[<Struct>]
+[<StructLayout(LayoutKind.Sequential)>]
+type D3D12_RESOURCE_BARRIER =
+    val mutable Type: D3D12_RESOURCE_BARRIER_TYPE
+
+    val mutable Flags: D3D12_RESOURCE_BARRIER_FLAGS
+
+    val mutable Union: D3D12_RESOURCE_BARRIER_Union
+
 type D3D12_GPU_VIRTUAL_ADDRESS = struct end
 type D3D12_INDEX_BUFFER_VIEW = struct end
 type D3D12_STREAM_OUTPUT_BUFFER_VIEW = struct end
@@ -696,6 +772,8 @@ type D3D12_CLEAR_FLAGS = struct end
 [<Guid("5b160d0f-ac1b-4185-8ba8-b3ae42a5a455")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12GraphicsCommandList =
+    inherit ID3D12CommandList
+
     abstract member SetPrivateData:
         [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
         DataSize: uint * 
@@ -919,7 +997,7 @@ type ID3D12GraphicsCommandList =
     abstract member IASetVertexBuffers:
         StartSlot: uint * 
         NumViews: uint * 
-        pViews: byref<D3D12_INDEX_BUFFER_VIEW>
+        pViews: inref<D3D12_VERTEX_BUFFER_VIEW>
             -> unit
     
     abstract member SOSetTargets:
@@ -932,7 +1010,7 @@ type ID3D12GraphicsCommandList =
         NumRenderTargetDescriptors: uint * 
         pRenderTargetDescriptors: byref<D3D12_CPU_DESCRIPTOR_HANDLE> * 
         RTsSingleHandleToDescriptorRange: bool * 
-        pDepthStencilDescriptor: byref<D3D12_CPU_DESCRIPTOR_HANDLE>
+        pDepthStencilDescriptor: nativeint // Should be byref<D3D12_CPU_DESCRIPTOR_HANDLE>, but idk how to pass null
             -> unit
     
     abstract member ClearDepthStencilView:
@@ -946,9 +1024,9 @@ type ID3D12GraphicsCommandList =
     
     abstract member ClearRenderTargetView:
         RenderTargetView: D3D12_CPU_DESCRIPTOR_HANDLE * 
-        [<MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)>]ColorRGBA: single[] * 
+        [<MarshalAs(UnmanagedType.LPArray)>] ColorRGBA: single[] * 
         NumRects: uint * 
-        pRects: byref<D3D12_RECT>
+        pRects: nativeint // Should be byref<D3D12_RECT>, but idk how to pass null
             -> unit
 
 type D3D12_INPUT_CLASSIFICATION = 
