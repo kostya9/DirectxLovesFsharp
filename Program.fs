@@ -13,6 +13,7 @@ type D3dPipeline = {
     SwapChain : D3dInterop.IDXGISwapChain1;
     RtvDescriptors: D3dInterop.ID3D12Resource[];
     Heap: D3dInterop.ID3D12DescriptorHeap;
+    Factory: D3dInterop.IDXGIFactory2;
 }
 
 [<Struct>]
@@ -49,6 +50,7 @@ let loadPipeline (window: Window) isDebug  =
         D3dInterop.D3D12GetDebugInterface(typeof<D3dInterop.ID3D12Debug>.GUID, &debugLayer)
         if result <> 0un then do failwith $"Got result {result}"
         debugLayer.EnableDebugLayer()
+        Marshal.ReleaseComObject(debugLayer) |> ignore
 
     let mutable factory: D3dInterop.IDXGIFactory2 = null
     D3dInterop.CreateDXGIFactory2(0x01u, typeof<D3dInterop.IDXGIFactory2>.GUID, &factory)
@@ -127,6 +129,7 @@ let loadPipeline (window: Window) isDebug  =
         SwapChain = swapChain;
         RtvDescriptors = rtvDescriptors;
         Heap = heap;
+        Factory = factory;
     }
 
 type D3dAssets = {
@@ -411,7 +414,7 @@ let destroy(assets) =
 let (|Field|_|) field x = if field = x then Some () else None
 
 type WindowsCallbackState =
-    val mutable renderingState: D3dRenderingState option
+    val mutable renderingState: D3dPipeline option
 
     member this.State = this.renderingState |> Option.get
 
@@ -433,7 +436,7 @@ let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg
         0n
     | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
 
-let mutable renderingState: D3dRenderingState = Unchecked.defaultof<_>
+let mutable renderingState: D3dPipeline = Unchecked.defaultof<_>
 
 let init(state: WindowsCallbackState) =
     let callbackDelegate = WinInterop.WindowProc(windowCallback state)
@@ -442,9 +445,9 @@ let init(state: WindowsCallbackState) =
     let isDebug = true
     renderingState <-
         loadPipeline window isDebug
-        |> loadAssets
-        |> fun assets -> { Assets = assets; FenceValue = 0UL }
-        |> waitForNextFrame
+        //|> loadAssets
+        //|> fun assets -> { Assets = assets; FenceValue = 0UL }
+        //|> waitForNextFrame
 
     state.renderingState <- Some renderingState
 

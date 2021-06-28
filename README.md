@@ -26,3 +26,4 @@ vertexBuffer.Map(0u, &readRange, &pVertexDataBegin)
 let verticesDataSpan = new Span<Vertex>(pVertexDataBegin, vertices.Length)
 vertices.CopyTo(verticesDataSpan)
 ```
+- Make sure you release COM objects or tie them to GC Roots so that strange finalizer boogey-woogey internal CLR errors won't occur (alternatively, create nice wrappers that implement finalizers/disposables. oh well, I am too lazy for that)
