@@ -55,7 +55,7 @@ let loadPipeline (window: Window) isDebug  =
     let mutable factory: D3dInterop.IDXGIFactory2 = null
     D3dInterop.CreateDXGIFactory2(0x01u, typeof<D3dInterop.IDXGIFactory2>.GUID, &factory)
     
-    // factory.MakeWindowAssociation(window.Handle, 0x1u)
+    factory.MakeWindowAssociation(window.Handle, 0x1u)
 
     let mutable idx = 0u
     let mutable adapter: D3dInterop.IDXGIAdapter = null
@@ -140,6 +140,7 @@ type D3dAssets = {
     VertexShader: D3dInterop.ID3DBlob;
     PixelShader: D3dInterop.ID3DBlob;
     PipelineState: D3dInterop.ID3D12PipelineState;
+    CommandList: D3dInterop.ID3D12GraphicsCommandList;
 }
 
 type D3dRenderingState = {
@@ -385,10 +386,24 @@ let loadAssets (pipeline): D3dAssets =
         Fence = fence;
         FenceEvent = fenceEvent;
         PipelineState = pipelineState;
+        CommandList = commandList;
     }
     
 
 let infiniteTimeout = 0xFFFFFFFFu
+
+let populateCommandList renderState = 
+    let commandAllocator = renderState.Assets.Pipeline.CommandAllocator
+    commandAllocator.Reset()
+
+    let pso = renderState.Assets.PipelineState
+    let commandList = renderState.Assets.CommandList
+    commandList.Reset(commandAllocator, pso)
+
+
+
+
+
 let waitForNextFrame renderState = 
     let fence = renderState.Assets.Fence
     let fenceEvent = renderState.Assets.FenceEvent
@@ -414,7 +429,7 @@ let destroy(assets) =
 let (|Field|_|) field x = if field = x then Some () else None
 
 type WindowsCallbackState =
-    val mutable renderingState: D3dPipeline option
+    val mutable renderingState: D3dRenderingState option
 
     member this.State = this.renderingState |> Option.get
 
@@ -436,7 +451,7 @@ let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg
         0n
     | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
 
-let mutable renderingState: D3dPipeline = Unchecked.defaultof<_>
+let mutable renderingState: D3dRenderingState = Unchecked.defaultof<_>
 
 let init(state: WindowsCallbackState) =
     let callbackDelegate = WinInterop.WindowProc(windowCallback state)
@@ -445,9 +460,9 @@ let init(state: WindowsCallbackState) =
     let isDebug = true
     renderingState <-
         loadPipeline window isDebug
-        //|> loadAssets
-        //|> fun assets -> { Assets = assets; FenceValue = 0UL }
-        //|> waitForNextFrame
+        |> loadAssets
+        |> fun assets -> { Assets = assets; FenceValue = 0UL }
+        |> waitForNextFrame
 
     state.renderingState <- Some renderingState
 

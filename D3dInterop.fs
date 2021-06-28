@@ -455,42 +455,6 @@ type D3D12_HEAP_PROPERTIES =
     val mutable VisibleNodeMask: uint
 
 [<AllowNullLiteral>]
-[<Guid("5b160d0f-ac1b-4185-8ba8-b3ae42a5a455")>]
-[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
-type ID3D12GraphicsCommandList =
-    abstract member SetPrivateData:
-        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
-        DataSize: uint * 
-        pData: IntPtr
-            -> unit
-
-    abstract member SetPrivateDataInterface:
-        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
-        pUnknown: IntPtr
-            -> unit
-
-    abstract member GetPrivateData:
-        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
-        pDataSize: byref<uint> * pData: nativeint
-            -> unit
-
-    abstract member GetParent:
-        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
-            -> unit
-
-    abstract member GetDevice:
-        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
-            -> unit
-
-    abstract member GetType:
-        unit -> D3D12_COMMAND_LIST_TYPE
-
-    abstract member Close: 
-        unit -> unit
-
-[<AllowNullLiteral>]
 [<Guid("765a30f3-f624-4c6f-a828-ace948622445")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12PipelineState = interface end
@@ -528,7 +492,36 @@ type D3D12_ROOT_SIGNATURE_DESC =
 [<AllowNullLiteral>]
 [<Guid("6102dee4-af59-4b09-b999-b44d73f09b24")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
-type ID3D12CommandAllocator = interface end
+type ID3D12CommandAllocator =
+
+    abstract member SetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+        DataSize: uint * 
+        pData: IntPtr
+            -> unit
+
+    abstract member SetPrivateDataInterface:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+        pUnknown: IntPtr
+            -> unit
+
+    abstract member GetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+        pDataSize: byref<uint> * pData: nativeint
+            -> unit
+
+    abstract member GetParent:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            -> unit
+
+    abstract member GetDevice:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
+            -> unit
+
+    abstract member Reset:
+        unit -> unit
 
 [<AllowNullLiteral>]
 [<Guid("0ec870a6-5d7e-4c22-8cfc-5baae07616ed")>]
@@ -686,6 +679,277 @@ type ID3D12DescriptorHeap =
 [<Guid("c54a6b66-72df-4ee8-8be5-a946a1429214")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12RootSignature = interface end
+
+type D3D12_TEXTURE_COPY_LOCATION = struct end
+type D3D12_BOX = struct end
+type D3D12_TILE_COPY_FLAGS = struct end
+type D3D12_PRIMITIVE_TOPOLOGY = struct end
+type D3D12_RECT = struct end
+type D3D12_VIEWPORT = struct end
+type D3D12_RESOURCE_BARRIER = struct end
+type D3D12_GPU_VIRTUAL_ADDRESS = struct end
+type D3D12_INDEX_BUFFER_VIEW = struct end
+type D3D12_STREAM_OUTPUT_BUFFER_VIEW = struct end
+type D3D12_CLEAR_FLAGS = struct end
+
+[<AllowNullLiteral>]
+[<Guid("5b160d0f-ac1b-4185-8ba8-b3ae42a5a455")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type ID3D12GraphicsCommandList =
+    abstract member SetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+        DataSize: uint * 
+        pData: IntPtr
+            -> unit
+
+    abstract member SetPrivateDataInterface:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+        pUnknown: IntPtr
+            -> unit
+
+    abstract member GetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+        pDataSize: byref<uint> * pData: nativeint
+            -> unit
+
+    abstract member GetParent:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            -> unit
+
+    abstract member GetDevice:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
+            -> unit
+
+    abstract member GetType:
+        unit -> D3D12_COMMAND_LIST_TYPE
+
+    abstract member Close: 
+        unit -> unit
+
+    abstract member Reset:
+        pAllocator: ID3D12CommandAllocator *
+        pInitialState: ID3D12PipelineState
+            -> unit
+
+    abstract member ClearState:
+        pPipelineState: ID3D12PipelineState
+            -> unit
+    
+    abstract member DrawInstanced:
+        VertexCountPerInstance: uint * 
+        InstanceCount: uint * 
+        StartVertexLocation: uint * 
+        StartInstanceLocation: uint
+            -> unit
+    
+    abstract member DrawIndexedInstanced:
+        IndexCountPerInstance: uint * 
+        InstanceCount: uint * 
+        StartIndexLocation: uint * 
+        BaseVertexLocation: int * 
+        StartInstanceLocation: uint
+            -> unit
+    
+    abstract member Dispatch:
+        ThreadGroupCountX: uint * 
+        ThreadGroupCountY: uint * 
+        ThreadGroupCountZ: uint
+            -> unit
+    
+    abstract member CopyBufferRegion:
+        pDstBuffer: ID3D12Resource * 
+        DstOffset: uint64 * 
+        pSrcBuffer: ID3D12Resource * 
+        SrcOffset: uint64 * 
+        NumBytes: uint64
+            -> unit
+    
+    abstract member CopyTextureRegion:
+        pDst: byref<D3D12_TEXTURE_COPY_LOCATION> * 
+        DstX: uint * 
+        DstY: uint * 
+        DstZ: uint * 
+        pSrc: byref<D3D12_TEXTURE_COPY_LOCATION> * 
+        pSrcBox: byref<D3D12_BOX>
+            -> unit
+    
+    abstract member CopyResource:
+        pDstResource: ID3D12Resource * 
+        pSrcResource: ID3D12Resource
+            -> unit
+    
+    abstract member CopyTiles:
+        pTiledResource: ID3D12Resource * 
+        pTileRegionStartCoordinate: byref<D3D12_TILED_RESOURCE_COORDINATE> * 
+        pTileRegionSize: byref<D3D12_TILE_REGION_SIZE> * 
+        pBuffer: ID3D12Resource * 
+        BufferStartOffsetInBytes: uint64 * 
+        Flags: D3D12_TILE_COPY_FLAGS
+            -> unit
+    
+    abstract member ResolveSubresource:
+        pDstResource: ID3D12Resource * 
+        DstSubresource: uint * 
+        pSrcResource: ID3D12Resource * 
+        SrcSubresource: uint * 
+        Format: DXGI_FORMAT
+            -> unit
+    
+    abstract member IASetPrimitiveTopology:
+        PrimitiveTopology: D3D12_PRIMITIVE_TOPOLOGY 
+            -> unit
+    
+    abstract member RSSetViewports:
+        NumViewports: uint * 
+        pViewports: byref<D3D12_VIEWPORT>
+            -> unit
+    
+    abstract member RSSetScissorRects:
+        NumRects: uint * 
+        pRects: byref<D3D12_RECT>
+            -> unit
+    
+    abstract member OMSetBlendFactor:
+        [<MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)>]
+        BlendFactor: float[] // Size = 4
+            -> unit
+    
+    abstract member OMSetStencilRef:
+        StencilRef: uint
+            -> unit
+    
+    abstract member SetPipelineState:
+        pPipelineState: ID3D12PipelineState
+            -> unit
+    
+    abstract member ResourceBarrier:
+        NumBarriers: uint * 
+        pBarriers: byref<D3D12_RESOURCE_BARRIER>
+            -> unit
+    
+    abstract member ExecuteBundle:
+        pCommandList: ID3D12GraphicsCommandList
+            -> unit
+    
+    abstract member SetDescriptorHeaps:
+        NumDescriptorHeaps: uint * 
+        ppDescriptorHeaps: byref<ID3D12DescriptorHeap>
+            -> unit
+    
+    abstract member SetComputeRootSignature:
+        pRootSignature: ID3D12RootSignature
+            -> unit
+    
+    abstract member SetGraphicsRootSignature:
+        pRootSignature: ID3D12RootSignature
+            -> unit
+    
+    abstract member SetComputeRootDescriptorTable:
+        RootParameterIndex: uint * 
+        BaseDescriptor: D3D12_GPU_DESCRIPTOR_HANDLE
+            -> unit
+    
+    abstract member SetGraphicsRootDescriptorTable:
+        RootParameterIndex: uint * 
+        BaseDescriptor: D3D12_GPU_DESCRIPTOR_HANDLE
+            -> unit
+    
+    abstract member SetComputeRoot32BitConstant:
+        RootParameterIndex: uint * 
+        SrcData: uint * 
+        DestOffsetIn32BitValues: uint
+            -> unit
+    
+    abstract member SetGraphicsRoot32BitConstant:
+        RootParameterIndex: uint * 
+        SrcData: uint * 
+        DestOffsetIn32BitValues: uint
+            -> unit
+    
+    abstract member SetComputeRoot32BitConstants:
+        RootParameterIndex: uint * 
+        Num32BitValuesToSet: uint * 
+        pSrcData: voidptr *
+        DestOffsetIn32BitValues: uint
+            -> unit
+    
+    abstract member SetGraphicsRoot32BitConstants:
+        RootParameterIndex: uint * 
+        Num32BitValuesToSet: uint * 
+        pSrcData: voidptr *
+        DestOffsetIn32BitValues: uint
+            -> unit
+    
+    abstract member SetComputeRootConstantBufferView:
+        RootParameterIndex: uint * 
+        BufferLocation: D3D12_GPU_VIRTUAL_ADDRESS
+            -> unit
+    
+    abstract member SetGraphicsRootConstantBufferView:
+        RootParameterIndex: uint * 
+        BufferLocation: D3D12_GPU_VIRTUAL_ADDRESS
+            -> unit
+    
+    abstract member SetComputeRootShaderResourceView:
+        RootParameterIndex: uint * 
+        BufferLocation: D3D12_GPU_VIRTUAL_ADDRESS
+            -> unit
+    
+    abstract member SetGraphicsRootShaderResourceView:
+        RootParameterIndex: uint * 
+        BufferLocation: D3D12_GPU_VIRTUAL_ADDRESS
+            -> unit
+    
+    abstract member SetComputeRootUnorderedAccessView:
+        RootParameterIndex: uint * 
+        BufferLocation: D3D12_GPU_VIRTUAL_ADDRESS
+            -> unit
+    
+    abstract member SetGraphicsRootUnorderedAccessView:
+        RootParameterIndex: uint * 
+        BufferLocation: D3D12_GPU_VIRTUAL_ADDRESS
+            -> unit
+    
+    abstract member IASetIndexBuffer:
+        pView: byref<D3D12_INDEX_BUFFER_VIEW>
+            -> unit
+    
+    abstract member IASetVertexBuffers:
+        StartSlot: uint * 
+        NumViews: uint * 
+        pViews: byref<D3D12_INDEX_BUFFER_VIEW>
+            -> unit
+    
+    abstract member SOSetTargets:
+        StartSlot: uint * 
+        NumViews: uint * 
+        pViews: byref<D3D12_STREAM_OUTPUT_BUFFER_VIEW>
+            -> unit
+    
+    abstract member OMSetRenderTargets:
+        NumRenderTargetDescriptors: uint * 
+        pRenderTargetDescriptors: byref<D3D12_CPU_DESCRIPTOR_HANDLE> * 
+        RTsSingleHandleToDescriptorRange: bool * 
+        pDepthStencilDescriptor: byref<D3D12_CPU_DESCRIPTOR_HANDLE>
+            -> unit
+    
+    abstract member ClearDepthStencilView:
+        DepthStencilView: D3D12_CPU_DESCRIPTOR_HANDLE * 
+        ClearFlags: D3D12_CLEAR_FLAGS * 
+        Depth: single * 
+        Stencil: uint8 * 
+        NumRects: uint * 
+        pRects: byref<D3D12_RECT>
+            -> unit
+    
+    abstract member ClearRenderTargetView:
+        RenderTargetView: D3D12_CPU_DESCRIPTOR_HANDLE * 
+        [<MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)>]ColorRGBA: single[] * 
+        NumRects: uint * 
+        pRects: byref<D3D12_RECT>
+            -> unit
 
 type D3D12_INPUT_CLASSIFICATION = 
     | D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA = 0
@@ -1248,12 +1512,12 @@ type IDXGIFactory2 =
             -> unit
             (*
     abstract member HRESULT GetSharedResourceAdapterLuid(/* [annotation] _In_ */ IntPtr hResource, /* [annotation] _Out_ */ out LUID pLuid);
-    abstract member HRESULT RegisterStereoStatusWindow(/* [annotation][in] _In_ */ IntPtr WindowHandle, /* [annotation][in] _In_ */ uint wMsg, /* [annotation][out] _Out_ */ out uint pdwCookie);
-    abstract member HRESULT RegisterStereoStatusEvent(/* [annotation][in] _In_ */ IntPtr hEvent, /* [annotation][out] _Out_ */ out uint pdwCookie);
-    abstract member void UnregisterStereoStatus(/* [annotation][in] _In_ */ uint dwCookie);
-    abstract member HRESULT RegisterOcclusionStatusWindow(/* [annotation][in] _In_ */ IntPtr WindowHandle, /* [annotation][in] _In_ */ uint wMsg, /* [annotation][out] _Out_ */ out uint pdwCookie);
-    abstract member HRESULT RegisterOcclusionStatusEvent(/* [annotation][in] _In_ */ IntPtr hEvent, /* [annotation][out] _Out_ */ out uint pdwCookie);
-    abstract member void UnregisterOcclusionStatus(/* [annotation][in] _In_ */ uint dwCookie);
+    abstract member HRESULT RegisterStereoStatusWindow(/* [annotation][in] _In_ */ IntPtr WindowHandle, /* [annotation][in] _In_ */ wMsg: uint, /* [annotation][out] _Out_ */ out pdwCookie: uint);
+    abstract member HRESULT RegisterStereoStatusEvent(/* [annotation][in] _In_ */ IntPtr hEvent, /* [annotation][out] _Out_ */ out pdwCookie: uint);
+    abstract member void UnregisterStereoStatus(/* [annotation][in] _In_ */ dwCookie: uint);
+    abstract member HRESULT RegisterOcclusionStatusWindow(/* [annotation][in] _In_ */ IntPtr WindowHandle, /* [annotation][in] _In_ */ wMsg: uint, /* [annotation][out] _Out_ */ out pdwCookie: uint);
+    abstract member HRESULT RegisterOcclusionStatusEvent(/* [annotation][in] _In_ */ IntPtr hEvent, /* [annotation][out] _Out_ */ out pdwCookie: uint);
+    abstract member void UnregisterOcclusionStatus(/* [annotation][in] _In_ */ dwCookie: uint);
     abstract member HRESULT CreateSwapChainForComposition(/* [annotation][in] _In_ */ [MarshalAs(UnmanagedType.IUnknown)] object pDevice, /* [annotation][in] _In_ */ ref DXGI_SWAP_CHAIN_DESC1 pDesc, /* [annotation][in] _In_opt_ */ IDXGIOutput pRestrictToOutput, /* [annotation][out] _COM_Outptr_ */ out IDXGISwapChain1 ppSwapChain);*)
 [<DllImport("dxgi", ExactSpelling = true, PreserveSig = false)>]
 extern void CreateDXGIFactory2(
