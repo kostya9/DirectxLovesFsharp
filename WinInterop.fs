@@ -127,6 +127,9 @@
         [<DllImport("kernel32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
         extern unit WaitForSingleObject(Handle hHandle, uint dwMilliseconds)
 
+        [<DllImport("kernel32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
+        extern int WaitForSingleObjectEx(Handle hHandle, uint dwMilliseconds, bool bAlertable)
+
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
         extern unit SetWindowLongPtrW(Handle hWNd, int nIndex, nativeint dwNewLong)
 

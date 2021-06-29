@@ -8,7 +8,7 @@ open System.Runtime.InteropServices
 type D3dPipeline = {
     IsDebug: bool;
     Device: D3dInterop.ID3D12Device;
-    CommandAllocator: D3dInterop.ID3D12CommandAllocator;
+    CommandAllocators: D3dInterop.ID3D12CommandAllocator[];
     CommandQueue: D3dInterop.ID3D12CommandQueue;
     SwapChain : D3dInterop.IDXGISwapChain3;
     RtvDescriptors: D3dInterop.ID3D12Resource[];
@@ -114,19 +114,20 @@ let loadPipeline (window: Window) isDebug  =
                 let mutable buffer: D3dInterop.ID3D12Resource = null
                 swapChain.GetBuffer(i, typeof<D3dInterop.ID3D12Resource>.GUID, &buffer)
                 device.CreateRenderTargetView(buffer, 0n, shiftedRtcHandle)
-                buffer
-        |]
 
-    let mutable allocator: D3dInterop.ID3D12CommandAllocator = null
-    device.CreateCommandAllocator(D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, typeof<D3dInterop.ID3D12CommandAllocator>.GUID, &allocator)
+                let mutable allocator: D3dInterop.ID3D12CommandAllocator = null
+                device.CreateCommandAllocator(D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, typeof<D3dInterop.ID3D12CommandAllocator>.GUID, &allocator)
+                (buffer, allocator)
+        |]
+    
 
     { 
         Device = device; 
         IsDebug = true;
-        CommandAllocator = allocator; 
+        CommandAllocators = rtvDescriptors |> Array.map snd; 
         CommandQueue = commandQueue;
         SwapChain = swapChain;
-        RtvDescriptors = rtvDescriptors;
+        RtvDescriptors = rtvDescriptors |> Array.map fst;
         Heap = heap;
         Factory = factory;
         RtvDescriptorSize = rtvDescriptorSize;
@@ -148,7 +149,7 @@ type D3dAssets = {
 
 type D3dRenderingState = {
     Assets: D3dAssets;
-    FenceValue: uint64;
+    FenceValues: uint64[];
     FrameIdx: int;
 } with override this.ToString() = "D3dRenderingState"
 
@@ -305,7 +306,7 @@ let loadAssets (pipeline): D3dAssets =
     let mutable commandList: D3dInterop.ID3D12GraphicsCommandList = null
     device.CreateCommandList(0u, 
         D3dInterop.D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT, 
-        pipeline.CommandAllocator,
+        pipeline.CommandAllocators.[0],
         pipelineState,
         typeof<D3dInterop.ID3D12GraphicsCommandList>.GUID,
         &commandList)
@@ -401,7 +402,7 @@ let loadAssets (pipeline): D3dAssets =
 let infiniteTimeout = 0xFFFFFFFFu
 
 let populateCommandList renderState = 
-    let commandAllocator = renderState.Assets.Pipeline.CommandAllocator
+    let commandAllocator = renderState.Assets.Pipeline.CommandAllocators.[renderState.FrameIdx]
     commandAllocator.Reset()
 
     let pso = renderState.Assets.PipelineState
@@ -468,21 +469,39 @@ let populateCommandList renderState =
 
     ()
 
-let waitForNextFrame renderState = 
+let waitForGpu renderState = 
     let fence = renderState.Assets.Fence
-    let fenceEvent = renderState.Assets.FenceEvent
-    let fenceValue = renderState.FenceValue
+    let fenceValue = renderState.FenceValues.[renderState.FrameIdx]
     let commandQueue = renderState.Assets.Pipeline.CommandQueue
     commandQueue.Signal(fence, fenceValue)
 
-    if fence.GetCompletedValue() < fenceValue then do
-        fence.SetEventOnCompletion(fenceValue, fenceEvent)
-        WinInterop.External.WaitForSingleObject(fenceEvent, infiniteTimeout) 
+    let fenceEvent = renderState.Assets.FenceEvent
+    fence.SetEventOnCompletion(fenceValue, fenceEvent)
+    WinInterop.External.WaitForSingleObjectEx(fenceEvent, infiniteTimeout, false) |> ignore
+
+    renderState.FenceValues.[renderState.FrameIdx] <- fenceValue + 1UL
+
+    renderState
+
+
+let moveToNextFrame renderState = 
+    let fence = renderState.Assets.Fence
+    let fenceValue = renderState.FenceValues.[renderState.FrameIdx]
+    let commandQueue = renderState.Assets.Pipeline.CommandQueue
+    commandQueue.Signal(fence, fenceValue)
 
     let swapChain = renderState.Assets.Pipeline.SwapChain
-    let frameIndex = swapChain.GetCurrentBackBufferIndex() |> int
+    let nextFrameIdx = swapChain.GetCurrentBackBufferIndex() |> int
 
-    { renderState with FenceValue = fenceValue + 1UL; FrameIdx = frameIndex }
+    let nextFenceValue = renderState.FenceValues.[nextFrameIdx]
+    if fence.GetCompletedValue() < nextFenceValue then do
+        let fenceEvent = renderState.Assets.FenceEvent
+        fence.SetEventOnCompletion(nextFenceValue, fenceEvent)
+        WinInterop.External.WaitForSingleObjectEx(fenceEvent, infiniteTimeout, false) |> ignore
+
+    renderState.FenceValues.[nextFrameIdx] <- fenceValue + 1UL
+
+    { renderState with FrameIdx = nextFrameIdx }
 
 let update(renderState) =
     renderState
@@ -500,7 +519,7 @@ let render(renderState) =
     // Present the frame.
     renderState.Assets.Pipeline.SwapChain.Present(1u, 0u)
 
-    waitForNextFrame(renderState)
+    moveToNextFrame(renderState)
 
 let destroy(assets) = 
     ()
@@ -536,12 +555,22 @@ let init(state: WindowsCallbackState) =
     let callbackDelegate = WinInterop.WindowProc(windowCallback state)
     let window = WinInterop.makeWindow callbackDelegate
 
+    let mkRenderState assets =
+        let frameIdx = assets.Pipeline.SwapChain.GetCurrentBackBufferIndex() |> int
+        let fenceValues = [| 0UL; 0UL |]
+
+        fenceValues.[frameIdx] <- 1UL 
+
+        { Assets = assets; FenceValues = fenceValues; FrameIdx = frameIdx }
+
     let isDebug = true
     let renderingState =
         loadPipeline window isDebug
         |> loadAssets
-        |> fun assets -> { Assets = assets; FenceValue = 0UL; FrameIdx = 1 }
-        |> waitForNextFrame
+        |> mkRenderState
+        |> waitForGpu
+        |> update
+        |> render
 
     state.renderingState <- ValueSome renderingState
 
