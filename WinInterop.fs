@@ -133,12 +133,16 @@
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
         extern voidptr GetWindowLongPtrW(Handle hWNd, int nIndex)
 
+        [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
+        extern void PostQuitMessage(int nExitCode)
+
 
     type WindowProc = delegate of nativeint * unativeint * nativeint * nativeint -> nativeint
 
     module WindowMsgType =
         let WM_CREATE = 0x0001un
         let WM_PAINT = 0x000Fun
+        let WM_DESTROY = 0x0002un
 
     let makeWindow(callback: WindowProc) =
 

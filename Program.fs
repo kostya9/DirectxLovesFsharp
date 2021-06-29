@@ -10,13 +10,13 @@ type D3dPipeline = {
     Device: D3dInterop.ID3D12Device;
     CommandAllocator: D3dInterop.ID3D12CommandAllocator;
     CommandQueue: D3dInterop.ID3D12CommandQueue;
-    SwapChain : D3dInterop.IDXGISwapChain1;
+    SwapChain : D3dInterop.IDXGISwapChain3;
     RtvDescriptors: D3dInterop.ID3D12Resource[];
-    RtvDescriptorSize: unativeint;
+    RtvDescriptorSize: uint;
     Heap: D3dInterop.ID3D12DescriptorHeap;
     Factory: D3dInterop.IDXGIFactory2;
     DebugLayer: D3dInterop.ID3D12Debug;
-}
+} with override this.ToString() = "D3dPipeline"
 
 [<Struct>]
 [<StructLayout(LayoutKind.Sequential)>]
@@ -48,9 +48,7 @@ let loadPipeline (window: Window) isDebug  =
 
     let mutable debugLayer: D3dInterop.ID3D12Debug = null
     if isDebug then do
-        let mutable result = 0un
         D3dInterop.D3D12GetDebugInterface(typeof<D3dInterop.ID3D12Debug>.GUID, &debugLayer)
-        if result <> 0un then do failwith $"Got result {result}"
         debugLayer.EnableDebugLayer()
 
     let mutable factory: D3dInterop.IDXGIFactory2 = null
@@ -90,7 +88,7 @@ let loadPipeline (window: Window) isDebug  =
     swapChainDesc.SampleDesc.Count <- 1u
     swapChainDesc.Flags <- 0u
 
-    let mutable swapChain: D3dInterop.IDXGISwapChain1 = null
+    let mutable swapChain: D3dInterop.IDXGISwapChain3 = null
     factory.CreateSwapChainForHwnd(commandQueue, window.Handle, &swapChainDesc, 0L, null, &swapChain)
 
     let mutable heapDesc = D3dInterop.D3D12_DESCRIPTOR_HEAP_DESC()
@@ -110,7 +108,7 @@ let loadPipeline (window: Window) isDebug  =
         [|
             for i in 0u..frameCount - 1u ->
                 let mutable shiftedRtcHandle = D3dInterop.D3D12_CPU_DESCRIPTOR_HANDLE()
-                let offset = unativeint i * rtvDescriptorSize
+                let offset = i * rtvDescriptorSize
                 shiftedRtcHandle.ptr <- rtvHandle.ptr + nativeint offset
 
                 let mutable buffer: D3dInterop.ID3D12Resource = null
@@ -146,13 +144,13 @@ type D3dAssets = {
     PipelineState: D3dInterop.ID3D12PipelineState;
     CommandList: D3dInterop.ID3D12GraphicsCommandList;
     RootSignature: D3dInterop.ID3D12RootSignature;
-}
+} with override this.ToString() = "D3dAssets"
 
 type D3dRenderingState = {
     Assets: D3dAssets;
     FenceValue: uint64;
     FrameIdx: int;
-}
+} with override this.ToString() = "D3dRenderingState"
 
 let loadAssets (pipeline): D3dAssets = 
     let mutable signatureDesc = D3dInterop.D3D12_ROOT_SIGNATURE_DESC()
@@ -167,6 +165,7 @@ let loadAssets (pipeline): D3dAssets =
     let bufferPointer = signature.GetBufferPointer()
     let mutable rootSignature: D3dInterop.ID3D12RootSignature = null
     pipeline.Device.CreateRootSignature(0u, bufferPointer, bufferSize, typeof<D3dInterop.ID3D12RootSignature>.GUID, &rootSignature)
+    Marshal.ReleaseComObject(signature) |> ignore
 
     let mutable error: D3dInterop.ID3DBlob = null
     let mutable vertexShader: D3dInterop.ID3DBlob = null
@@ -271,10 +270,11 @@ let loadAssets (pipeline): D3dAssets =
     Marshal.StructureToPtr(inputElementDescs.[0], marshalledStructLocation, false)
     Marshal.StructureToPtr(inputElementDescs.[1], marshalledStructLocation + nativeint structSize, false)
 
+    let rootSignaturePtr = Marshal.GetComInterfaceForObject<D3dInterop.ID3D12RootSignature, D3dInterop.ID3D12RootSignature>(rootSignature)
     let mutable psoDesc = D3dInterop.D3D12_GRAPHICS_PIPELINE_STATE_DESC()
     psoDesc.InputLayout.pInputElementDescs <- marshalledStructLocation
     psoDesc.InputLayout.NumElements <- uint inputElementDescs.Length
-    psoDesc.pRootSignature <- rootSignature
+    psoDesc.pRootSignature <- rootSignaturePtr
     psoDesc.VS.pShaderBytecode <- vertexShader.GetBufferPointer()
     psoDesc.VS.BytecodeLength <- vertexShader.GetBufferSize()
     psoDesc.PS.pShaderBytecode <- pixelShader.GetBufferPointer()
@@ -408,13 +408,18 @@ let populateCommandList renderState =
     let commandList = renderState.Assets.CommandList
     commandList.Reset(commandAllocator, pso)
 
-    let rootSignature = renderState.Assets.RootSignature
-    commandList.SetGraphicsRootSignature(rootSignature)
+    commandList.SetGraphicsRootSignature(renderState.Assets.RootSignature)
 
     let mutable viewPort = D3dInterop.D3D12_VIEWPORT()
+    viewPort.Width <- width |> single
+    viewPort.Height <- width |> single
+    viewPort.MinDepth <- 0.0f
+    viewPort.MaxDepth <- 1.0f
     commandList.RSSetViewports(1u, &viewPort)
 
     let mutable scissorRect = D3dInterop.D3D12_RECT()
+    scissorRect.right <- width |> int
+    scissorRect.bottom <- height |> int
     commandList.RSSetScissorRects(1u, &scissorRect)
 
     let frameIdx = renderState.FrameIdx
@@ -437,7 +442,7 @@ let populateCommandList renderState =
     heap.GetCPUDescriptorHandleForHeapStart(&rtvHandle)
 
     let rtvDescriptorSize = renderState.Assets.Pipeline.RtvDescriptorSize
-    let offset = unativeint frameIdx * rtvDescriptorSize
+    let offset = uint frameIdx * rtvDescriptorSize
     rtvHandle.ptr <- rtvHandle.ptr + nativeint offset
     commandList.OMSetRenderTargets(1u, &rtvHandle, false, 0n)
 
@@ -447,8 +452,6 @@ let populateCommandList renderState =
     commandList.IASetPrimitiveTopology(D3dInterop.D3D12_PRIMITIVE_TOPOLOGY.D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
     commandList.IASetVertexBuffers(0u, 1u, &renderState.Assets.VertexBufferView)
     commandList.DrawInstanced(3u, 1u, 0u, 0u)
-
-    
 
     let mutable endBarrier = D3dInterop.D3D12_RESOURCE_BARRIER()
     endBarrier.Type <- D3dInterop.D3D12_RESOURCE_BARRIER_TYPE.D3D12_RESOURCE_BARRIER_TYPE_TRANSITION
@@ -476,7 +479,8 @@ let waitForNextFrame renderState =
         fence.SetEventOnCompletion(fenceValue, fenceEvent)
         WinInterop.External.WaitForSingleObject(fenceEvent, infiniteTimeout) 
 
-    let frameIndex = (renderState.FrameIdx + 1) % 2 // TODO: Query SwapChain for next backBuffer index
+    let swapChain = renderState.Assets.Pipeline.SwapChain
+    let frameIndex = swapChain.GetCurrentBackBufferIndex() |> int
 
     { renderState with FenceValue = fenceValue + 1UL; FrameIdx = frameIndex }
 
@@ -506,8 +510,6 @@ let (|Field|_|) field x = if field = x then Some () else None
 type WindowsCallbackState =
     val mutable renderingState: D3dRenderingState option
 
-    member this.State = this.renderingState |> Option.get
-
     new() = { renderingState = None }
 
 let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg: unativeint) (wParam: nativeint) (lParam: nativeint) =
@@ -524,16 +526,18 @@ let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg
             |> Some
 
         0n
-    | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
+    | Field WinInterop.WindowMsgType.WM_DESTROY ->
 
-let mutable renderingState: D3dRenderingState = Unchecked.defaultof<_>
+        External.PostQuitMessage(0)
+        0n
+    | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
 
 let init(state: WindowsCallbackState) =
     let callbackDelegate = WinInterop.WindowProc(windowCallback state)
     let window = WinInterop.makeWindow callbackDelegate
 
     let isDebug = true
-    renderingState <-
+    let renderingState =
         loadPipeline window isDebug
         |> loadAssets
         |> fun assets -> { Assets = assets; FenceValue = 0UL; FrameIdx = 1 }
@@ -557,8 +561,7 @@ let main argv =
         // Send message to WindowProcedure
         WinInterop.External.DispatchMessageA &messages |> ignore
 
-    Console.WriteLine("Press anything to exit...")
-    Console.ReadKey() |> ignore
+    Console.WriteLine("Exiting...")
 
     0
 

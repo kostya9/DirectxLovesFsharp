@@ -365,53 +365,13 @@ type ID3D12Resource =
         pWrittenRange: nativeint // byref<D3D12_RANGE>, but idk how to pass nullptr
             -> unit
 
+    [<PreserveSig>]
     abstract member GetDesc:
         unit -> D3D12_RESOURCE_DESC
     
     [<PreserveSig>]
     abstract member GetGPUVirtualAddress:
         unit -> uint64
-
-[<AllowNullLiteral>]
-[<Guid("790a45f7-0d42-4876-983a-0a55cfe6f4aa")>]
-[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
-type IDXGISwapChain1 = 
-    abstract member SetPrivateData:
-        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
-        DataSize: uint * 
-        pData: IntPtr
-            -> unit
-
-    abstract member SetPrivateDataInterface:
-        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
-        pUnknown: IntPtr
-            -> unit
-
-    abstract member GetPrivateData:
-        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
-        pDataSize: byref<uint> * pData: nativeint
-            -> unit
-
-    abstract member GetParent:
-        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
-            -> unit
-
-    abstract member GetDevice:
-        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
-        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
-            -> unit
-
-    abstract member Present:
-        SyncInterval: uint *
-        Flags: uint
-            -> unit
-
-    abstract member GetBuffer:
-        Buffer: uint *
-        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
-        ppSurface: byref<ID3D12Resource>
-            -> unit
 
 
 type D3D12_HEAP_FLAGS = 
@@ -671,6 +631,7 @@ type ID3D12DescriptorHeap =
         [<MarshalAs(UnmanagedType.IUnknown)>] ppvDevice: byref<Object>
             -> unit
 
+    [<PreserveSig>]
     abstract member GetDesc: unit -> D3D12_DESCRIPTOR_HEAP_DESC
        
     [<PreserveSig>]
@@ -800,6 +761,7 @@ type ID3D12GraphicsCommandList =
         [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
             -> unit
 
+    [<PreserveSig>]
     abstract member GetType:
         unit -> D3D12_COMMAND_LIST_TYPE
 
@@ -1247,7 +1209,7 @@ type D3D12_PIPELINE_STATE_FLAGS =
 [<StructLayout(LayoutKind.Sequential)>]
 [<Struct>]
 type D3D12_GRAPHICS_PIPELINE_STATE_DESC =
-    val mutable pRootSignature: ID3D12RootSignature;
+    val mutable pRootSignature: nativeint;
     val mutable VS: D3D12_SHADER_BYTECODE;
     val mutable PS: D3D12_SHADER_BYTECODE;
     val mutable DS: D3D12_SHADER_BYTECODE;
@@ -1339,9 +1301,10 @@ type ID3D12Device =
         ppvHeap: byref<ID3D12DescriptorHeap>
             -> unit
 
+    [<PreserveSig>]
     abstract member GetDescriptorHandleIncrementSize:
         DescriptorHeapType: D3D12_DESCRIPTOR_HEAP_TYPE
-            -> unativeint
+            -> uint
 
     abstract member CreateRootSignature: 
         nodeMask: uint *
@@ -1403,12 +1366,14 @@ type ID3D12Device =
         DescriptorHeapsType: D3D12_DESCRIPTOR_HEAP_TYPE
             -> unit;
     
+    [<PreserveSig>]
     abstract member GetResourceAllocationInfo:
         visibleMask: uint *
         numResourceDescs: uint *
         pResourceDescs: byref<D3D12_RESOURCE_DESC>
             -> D3D12_RESOURCE_ALLOCATION_INFO
     
+    [<PreserveSig>]
     abstract member GetCustomHeapProperties:
         Mask: uint *
         heapType: D3D12_HEAP_TYPE
@@ -1487,6 +1452,172 @@ type ID3D12Device =
 
 [<AllowNullLiteral>]
 type IDXGIOutput = interface end
+type DXGI_FRAME_STATISTICS = struct end
+type DXGI_SWAP_CHAIN_FULLSCREEN_DESC = struct end
+type DXGI_PRESENT_PARAMETERS = struct end
+type DXGI_RGBA = struct end
+type DXGI_MODE_ROTATION = struct end
+type DXGI_MATRIX_3X2_F = struct end
+
+[<AllowNullLiteral>]
+[<Guid("94d99bdb-f1f8-4ab0-b236-7da0170edab1")>]
+[<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
+type IDXGISwapChain3 = 
+    abstract member SetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid *
+        DataSize: uint * 
+        pData: IntPtr
+            -> unit
+
+    abstract member SetPrivateDataInterface:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid  *
+        pUnknown: IntPtr
+            -> unit
+
+    abstract member GetPrivateData:
+        [<MarshalAs(UnmanagedType.LPStruct)>] Name: Guid * 
+        pDataSize: byref<uint> * pData: nativeint
+            -> unit
+
+    abstract member GetParent:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppParent: byref<Object> 
+            -> unit
+
+    abstract member GetDevice:
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid * 
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppDevice: byref<Object> 
+            -> unit
+
+    abstract member Present:
+        SyncInterval: uint *
+        Flags: uint
+            -> unit
+
+    abstract member GetBuffer:
+        Buffer: uint *
+        [<MarshalAs(UnmanagedType.LPStruct)>] riid: Guid *
+        ppSurface: byref<ID3D12Resource>
+            -> unit
+
+    abstract member SetFullscreenState: 
+        Fullscreen: bool *
+        pTarget: IDXGIOutput
+            -> unit
+    
+    abstract member GetFullscreenState: 
+        pFullscreen: byref<bool> *
+        ppTarget: byref<IDXGIOutput>
+            -> unit
+    
+    abstract member GetDesc: 
+        pDesc: byref<DXGI_SWAP_CHAIN_DESC>
+            -> unit
+    
+    abstract member ResizeBuffers: 
+        BufferCount: uint *
+        Width: uint *
+        Height: uint *
+        NewFormat: DXGI_FORMAT *
+        SwapChainFlags: uint
+            -> unit
+    
+    abstract member ResizeTarget: 
+        pNewTargetParameters: byref<DXGI_MODE_DESC>
+            -> unit
+    
+    abstract member GetContainingOutput: 
+        ppOutput: byref<IDXGIOutput>
+            -> unit
+    
+    abstract member GetFrameStatistics: 
+        pStats: byref<DXGI_FRAME_STATISTICS>
+            -> unit
+    
+    abstract member GetLastPresentCount: 
+        pLastPresentCount: byref<uint>
+            -> unit
+    
+    abstract member GetDesc1:
+        pDesc: byref<DXGI_SWAP_CHAIN_DESC1>
+            -> unit
+    
+    abstract member GetFullscreenDesc:
+        pDesc: byref<DXGI_SWAP_CHAIN_FULLSCREEN_DESC>
+            -> unit
+    
+    abstract member GetHwnd: 
+        pHwnd: byref<WinInterop.Handle>
+            -> unit
+    
+    abstract member GetCoreWindow: 
+        [<MarshalAs(UnmanagedType.LPStruct)>] refiid: Guid *
+        [<MarshalAs(UnmanagedType.IUnknown)>] ppUnk: byref<Object>
+            -> unit
+    
+    abstract member Present1: 
+        SyncInterval: uint *
+        PresentFlags: uint *
+        pPresentParameters: byref<DXGI_PRESENT_PARAMETERS>
+            -> unit
+    
+    [<PreserveSig>]
+    abstract member IsTemporaryMonoSupported:
+        unit -> bool
+    
+    abstract member GetRestrictToOutput: 
+        ppRestrictToOutput: byref<IDXGIOutput>
+            -> unit
+    
+    abstract member SetBackgroundColor: 
+        pColor: byref<DXGI_RGBA>
+            -> unit
+    
+    abstract member GetBackgroundColor: 
+        pColor: byref<DXGI_RGBA>
+            -> unit
+    
+    abstract member SetRotation:
+        Rotation: DXGI_MODE_ROTATION
+            -> unit
+    
+    abstract member GetRotation: 
+        pRotation: byref<DXGI_MODE_ROTATION>
+            -> unit
+    
+    abstract member SetSourceSize:
+        Width: uint *
+        Height: uint
+            -> unit
+    
+    abstract member GetSourceSize: 
+        pWidth: byref<uint> *
+        pHeight: byref<uint>
+            -> unit
+    
+    abstract member SetMaximumFrameLatency: 
+        MaxLatency: uint
+            -> unit
+    
+    abstract member GetMaximumFrameLatency: 
+        pMaxLatency: byref<uint>
+            -> unit
+    
+    [<PreserveSig>]
+    abstract member GetFrameLatencyWaitableObject:
+        unit -> WinInterop.Handle
+    
+    abstract member SetMatrixTransform: 
+        pMatrix: byref<DXGI_MATRIX_3X2_F>
+            -> unit
+    
+    abstract member GetMatrixTransform: 
+        pMatrix: byref<DXGI_MATRIX_3X2_F>
+            -> unit
+    
+    [<PreserveSig>]
+    abstract member GetCurrentBackBufferIndex:
+        unit -> uint
 
 [<Guid("8ba5fb08-5195-40e2-ac58-0d989c3a0102")>]
 [<AllowNullLiteral>]
@@ -1560,15 +1691,17 @@ type IDXGIFactory2 =
         ppAdapter: byref<IDXGIAdapter> 
             -> unit
 
-        [<PreserveSig>]
+    [<PreserveSig>]
     abstract member EnumAdapters1: 
         Adapter: uint32 * 
         ppAdapter: byref<IDXGIAdapter>
             -> unativeint
 
+    [<PreserveSig>]
     abstract member IsCurrent: 
         unit -> bool
 
+    [<PreserveSig>]
     abstract member IsWindowedStereoEnabled:
         unit -> bool
 
@@ -1578,7 +1711,7 @@ type IDXGIFactory2 =
         pDesc: byref<DXGI_SWAP_CHAIN_DESC1> * 
         pFullscreenDesc: int64 * 
         pRestrictToOutput: IDXGIOutput * 
-        ppSwapChain: byref<IDXGISwapChain1>
+        ppSwapChain: byref<IDXGISwapChain3>
             -> unit
 
     abstract member CreateSwapChainForCoreWindow:
@@ -1586,7 +1719,7 @@ type IDXGIFactory2 =
         [<MarshalAs(UnmanagedType.IUnknown)>] pWindow: Object * 
         pDesc: byref<DXGI_SWAP_CHAIN_DESC1> * 
         pRestrictToOutput: IDXGIOutput *
-        ppSwapChain: byref<IDXGISwapChain1>
+        ppSwapChain: byref<IDXGISwapChain3>
             -> unit
             (*
     abstract member HRESULT GetSharedResourceAdapterLuid(/* [annotation] _In_ */ IntPtr hResource, /* [annotation] _Out_ */ out LUID pLuid);
