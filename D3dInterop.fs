@@ -181,6 +181,10 @@ type ID3D12DeviceChild = interface end
 type SECURITY_ATTRIBUTES = struct end 
 type ID3D12Pageable = interface end
 
+type D3D12_TEXTURE_COPY_LOCATION = struct end
+type D3D12_BOX = struct end
+type D3D12_TILE_COPY_FLAGS = struct end
+
 type D3D12_TILED_RESOURCE_COORDINATE = struct end
 type D3D12_TILE_REGION_SIZE = struct end
 type D3D12_TILE_RANGE_FLAGS = struct end
@@ -632,22 +636,19 @@ type ID3D12DescriptorHeap =
             -> unit
 
     [<PreserveSig>]
-    abstract member GetDesc: unit -> D3D12_DESCRIPTOR_HEAP_DESC
-       
+    abstract member GetDesc: byref<D3D12_DESCRIPTOR_HEAP_DESC> -> unit
+
     [<PreserveSig>]
     abstract member GetCPUDescriptorHandleForHeapStart: byref<D3D12_CPU_DESCRIPTOR_HANDLE> -> unit
-        
+
     [<PreserveSig>]
-    abstract member GetGPUDescriptorHandleForHeapStart: unit -> D3D12_GPU_DESCRIPTOR_HANDLE
+    abstract member GetGPUDescriptorHandleForHeapStart: byref<D3D12_GPU_DESCRIPTOR_HANDLE> -> unit
 
 [<AllowNullLiteral>]
 [<Guid("c54a6b66-72df-4ee8-8be5-a946a1429214")>]
 [<InterfaceType(ComInterfaceType.InterfaceIsIUnknown)>]
 type ID3D12RootSignature = interface end
 
-type D3D12_TEXTURE_COPY_LOCATION = struct end
-type D3D12_BOX = struct end
-type D3D12_TILE_COPY_FLAGS = struct end
 
 type D3D12_PRIMITIVE_TOPOLOGY = 
     | D3D_PRIMITIVE_TOPOLOGY_UNDEFINED = 0
@@ -765,6 +766,7 @@ type ID3D12GraphicsCommandList =
     abstract member GetType:
         unit -> D3D12_COMMAND_LIST_TYPE
 
+    [<PreserveSig>]
     abstract member Close: 
         unit -> unit
 
@@ -777,6 +779,7 @@ type ID3D12GraphicsCommandList =
         pPipelineState: ID3D12PipelineState
             -> unit
     
+    [<PreserveSig>]
     abstract member DrawInstanced:
         VertexCountPerInstance: uint * 
         InstanceCount: uint * 
@@ -837,15 +840,18 @@ type ID3D12GraphicsCommandList =
         Format: DXGI_FORMAT
             -> unit
     
+    [<PreserveSig>]
     abstract member IASetPrimitiveTopology:
         PrimitiveTopology: D3D12_PRIMITIVE_TOPOLOGY 
             -> unit
     
+    [<PreserveSig>]
     abstract member RSSetViewports:
         NumViewports: uint * 
         pViewports: byref<D3D12_VIEWPORT>
             -> unit
     
+    [<PreserveSig>]
     abstract member RSSetScissorRects:
         NumRects: uint * 
         pRects: byref<D3D12_RECT>
@@ -864,6 +870,7 @@ type ID3D12GraphicsCommandList =
         pPipelineState: ID3D12PipelineState
             -> unit
     
+    [<PreserveSig>]
     abstract member ResourceBarrier:
         NumBarriers: uint * 
         pBarriers: byref<D3D12_RESOURCE_BARRIER>
@@ -882,6 +889,7 @@ type ID3D12GraphicsCommandList =
         pRootSignature: ID3D12RootSignature
             -> unit
     
+    [<PreserveSig>]
     abstract member SetGraphicsRootSignature:
         pRootSignature: ID3D12RootSignature
             -> unit
@@ -956,6 +964,7 @@ type ID3D12GraphicsCommandList =
         pView: byref<D3D12_INDEX_BUFFER_VIEW>
             -> unit
     
+    [<PreserveSig>]
     abstract member IASetVertexBuffers:
         StartSlot: uint * 
         NumViews: uint * 

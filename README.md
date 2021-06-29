@@ -11,6 +11,7 @@ My thoughts:
 abstract member GetGPUVirtualAddress:
     unit -> uint64
 ```
+- When the function returns void - use [\<PreserveSig\>]
 - DirectX Debug layer is nice
 - Dont trust MSDN - check headers
 - sizeof<> - nice operator to debug struct sizes (if you messed up something)
