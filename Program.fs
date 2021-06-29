@@ -508,9 +508,9 @@ let destroy(assets) =
 let (|Field|_|) field x = if field = x then Some () else None
 
 type WindowsCallbackState =
-    val mutable renderingState: D3dRenderingState option
+    val mutable renderingState: ValueOption<D3dRenderingState>
 
-    new() = { renderingState = None }
+    new() = { renderingState = ValueNone }
 
 let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg: unativeint) (wParam: nativeint) (lParam: nativeint) =
     match uMsg with
@@ -520,10 +520,10 @@ let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg
     | Field WinInterop.WindowMsgType.WM_PAINT ->  
         callbackState.renderingState <- 
             callbackState.renderingState
-            |> Option.get
+            |> ValueOption.get
             |> update
             |> render
-            |> Some
+            |> ValueSome
 
         0n
     | Field WinInterop.WindowMsgType.WM_DESTROY ->
@@ -543,7 +543,7 @@ let init(state: WindowsCallbackState) =
         |> fun assets -> { Assets = assets; FenceValue = 0UL; FrameIdx = 1 }
         |> waitForNextFrame
 
-    state.renderingState <- Some renderingState
+    state.renderingState <- ValueSome renderingState
 
     WinInterop.showWindow window
     window
