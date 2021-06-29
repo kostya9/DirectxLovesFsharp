@@ -412,7 +412,7 @@ let populateCommandList renderState =
 
     let mutable viewPort = D3dInterop.D3D12_VIEWPORT()
     viewPort.Width <- width |> single
-    viewPort.Height <- width |> single
+    viewPort.Height <- height |> single
     viewPort.MinDepth <- 0.0f
     viewPort.MaxDepth <- 1.0f
     commandList.RSSetViewports(1u, &viewPort)
