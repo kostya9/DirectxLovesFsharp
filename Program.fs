@@ -4,6 +4,8 @@ open WinInterop
 open System.IO
 open System.Text
 open System.Runtime.InteropServices
+open System.Diagnostics
+open System.Threading
 
 type D3dPipeline = {
     IsDebug: bool;
@@ -42,7 +44,9 @@ type Vertex = {
     color: Float4;
 }
 
-let (width, height) = (800u, 600u)
+let (width, height) = (800u, 800u)
+
+let aspectRatio = single width / single height
                        
 let loadPipeline (window: Window) isDebug  =
 
@@ -53,8 +57,6 @@ let loadPipeline (window: Window) isDebug  =
 
     let mutable factory: D3dInterop.IDXGIFactory2 = null
     D3dInterop.CreateDXGIFactory2(0x01u, typeof<D3dInterop.IDXGIFactory2>.GUID, &factory)
-    
-    factory.MakeWindowAssociation(window.Handle, 0x1u)
 
     let mutable idx = 0u
     let mutable adapter: D3dInterop.IDXGIAdapter = null
@@ -90,6 +92,8 @@ let loadPipeline (window: Window) isDebug  =
 
     let mutable swapChain: D3dInterop.IDXGISwapChain3 = null
     factory.CreateSwapChainForHwnd(commandQueue, window.Handle, &swapChainDesc, 0L, null, &swapChain)
+
+    factory.MakeWindowAssociation(window.Handle, 0x1u)
 
     let mutable heapDesc = D3dInterop.D3D12_DESCRIPTOR_HEAP_DESC()
     heapDesc.NumDescriptors <- frameCount
@@ -181,7 +185,7 @@ let loadAssets (pipeline): D3dAssets =
         let errStart = errorBlob.GetBufferPointer()
         let errSize = errorBlob.GetBufferSize() |> int
 
-        let span = new ReadOnlySpan<byte>(NativeInterop.NativePtr.ofNativeInt<byte>(errStart) |> NativeInterop.NativePtr.toVoidPtr, errSize)
+        let span = new ReadOnlySpan<byte>(errStart.ToPointer(), errSize)
         let errText = Encoding.UTF8.GetString(span);
 
         Console.WriteLine(errText)
@@ -314,18 +318,17 @@ let loadAssets (pipeline): D3dAssets =
     // CommandList is created in open state, so we reset it
     commandList.Close()
 
-    let aspectRatio = single width / single height
     let vertices: Vertex[] = [|
         {
-            position = { x = 0f; y = 0.25f * aspectRatio; z = 0f };
+            position = { x = 0f; y = 0.25f; z = 0f };
             color = { x = 1f; y = 0f; z = 0f; w = 1f }
         }
         {
-            position = { x = 0.25f; y = -0.25f * aspectRatio; z = 0f };
+            position = { x = 0.25f; y = -0.25f; z = 0f };
             color = { x = 0f; y = 1f; z = 0f; w = 1f }
         }
         {
-            position = { x = -0.25f; y = -0.25f * aspectRatio; z = 0f };
+            position = { x = -0.25f; y = -0.25f; z = 0f };
             color = { x = 0f; y = 0f; z = 1f; w = 1f }
         }
     |]
@@ -397,11 +400,47 @@ let loadAssets (pipeline): D3dAssets =
         CommandList = commandList;
         RootSignature = rootSignature;
     }
-    
+   
 
 let infiniteTimeout = 0xFFFFFFFFu
 
-let populateCommandList renderState = 
+let fillTriangle (span: Span<Vertex>) (triangle: Game.Triangle) =
+    span.[0] <- { 
+        position = { x = triangle.Top.X; y = triangle.Top.Y; z = 0.0f }; 
+        color = { x = 1f; y = 0f; z = 0f; w = 1f } 
+    }
+
+    span.[1] <- { 
+        position = { x = triangle.Left.X; y = triangle.Left.Y; z = 0.0f }; 
+        color = { x = 0f; y = 1f; z = 0f; w = 1f }
+    }
+
+    span.[2] <- { 
+        position = { x = triangle.Right.X; y = triangle.Right.Y; z = 0.0f }; 
+        color = { x = 0f; y = 0f; z = 1f; w = 1f }
+    }
+
+let uploadTriangle (vertexBuffer: D3dInterop.ID3D12Resource) triangle = 
+    let verticesSize = sizeof<Vertex> * 3
+    let verticesPtr = NativeInterop.NativePtr.stackalloc<byte> verticesSize
+    let verticesSpan = Span<Vertex>(verticesPtr |> NativeInterop.NativePtr.toVoidPtr, 3)
+    fillTriangle verticesSpan triangle
+
+    let mutable readRange = D3dInterop.D3D12_RANGE()
+    readRange.Begin <- 0un
+    readRange.End <- 0un
+
+    let mutable pVertexDataBegin = Unchecked.defaultof<voidptr>
+    vertexBuffer.Map(0u, &readRange, &pVertexDataBegin)
+
+    let verticesDataSpan = new Span<Vertex>(pVertexDataBegin, verticesSpan.Length)
+    verticesSpan.CopyTo(verticesDataSpan)
+
+    vertexBuffer.Unmap(0u, 0n)
+
+let populateCommandList renderState (gameState: Game.GameState) = 
+    uploadTriangle renderState.Assets.VertexBuffer gameState.Triangle
+
     let commandAllocator = renderState.Assets.Pipeline.CommandAllocators.[renderState.FrameIdx]
     commandAllocator.Reset()
 
@@ -503,11 +542,18 @@ let moveToNextFrame renderState =
 
     { renderState with FrameIdx = nextFrameIdx }
 
-let update(renderState) =
-    renderState
+type WindowsCallbackState =
+    val mutable renderingState: ValueOption<D3dRenderingState>
+    val mutable gameState: Game.GameState
 
-let render(renderState) =
-    populateCommandList(renderState) |> ignore
+    new(gameState) = { renderingState = ValueNone; gameState = gameState }
+
+let update msTimeElapsed oldState =
+    Game.update oldState msTimeElapsed
+
+
+let render gameState renderState =
+    populateCommandList renderState gameState
 
     // Execute the command list.
     let commandList = renderState.Assets.CommandList
@@ -518,7 +564,6 @@ let render(renderState) =
 
     // Present the frame.
     renderState.Assets.Pipeline.SwapChain.Present(1u, 0u)
-
     moveToNextFrame(renderState)
 
 let destroy(assets) = 
@@ -526,35 +571,36 @@ let destroy(assets) =
 
 let (|Field|_|) field x = if field = x then Some () else None
 
-type WindowsCallbackState =
-    val mutable renderingState: ValueOption<D3dRenderingState>
+let mutable running = true
+let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg: uint) (wParam: unativeint) (lParam: nativeint) =
+    //Console.WriteLine("Got " + string uMsg)
 
-    new() = { renderingState = ValueNone }
-
-let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg: unativeint) (wParam: nativeint) (lParam: nativeint) =
     match uMsg with
     | Field WinInterop.WindowMsgType.WM_CREATE ->
         0n
 
-    | Field WinInterop.WindowMsgType.WM_PAINT ->  
-        callbackState.renderingState <- 
-            callbackState.renderingState
-            |> ValueOption.get
-            |> update
-            |> render
-            |> ValueSome
+    | Field WinInterop.WindowMsgType.WM_DESTROY
+    | Field WinInterop.WindowMsgType.WM_CLOSE
+    | Field WinInterop.WindowMsgType.WM_QUIT ->
+        running <- false
 
         0n
-    | Field WinInterop.WindowMsgType.WM_DESTROY ->
+    | Field WinInterop.WindowMsgType.WM_PAINT ->
 
-        External.PostQuitMessage(0)
+        // We don't need to paint anything, but this maked windows happy
+        let mutable ps = WinInterop.External.PAINTSTRUCT()
+        let hdc = WinInterop.External.BeginPaint(hwnd, &ps)
+        WinInterop.External.EndPaint(hwnd, &ps) |> ignore
+            
+
         0n
     | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
 
-let init(state: WindowsCallbackState) =
+let mkWindowWithProc state =
     let callbackDelegate = WinInterop.WindowProc(windowCallback state)
-    let window = WinInterop.makeWindow callbackDelegate
+    WinInterop.makeWindow callbackDelegate
 
+let initRendering window (renderState: WindowsCallbackState) =
     let mkRenderState assets =
         let frameIdx = assets.Pipeline.SwapChain.GetCurrentBackBufferIndex() |> int
         let fenceValues = [| 0UL; 0UL |]
@@ -564,31 +610,86 @@ let init(state: WindowsCallbackState) =
         { Assets = assets; FenceValues = fenceValues; FrameIdx = frameIdx }
 
     let isDebug = true
-    let renderingState =
+    renderState.renderingState <-
         loadPipeline window isDebug
         |> loadAssets
         |> mkRenderState
-        |> waitForGpu
-        |> update
-        |> render
-
-    state.renderingState <- ValueSome renderingState
+        |> render renderState.gameState
+        |> ValueSome
 
     WinInterop.showWindow window
-    window
+
+    renderState
 
 [<EntryPoint>]
 let main argv =
-    let state = WindowsCallbackState()
-    let window = init(state)
+    let state = WindowsCallbackState(Game.mkGameState())
+    let window = mkWindowWithProc(state)
+
+    let targetFps = 60.0
+    let targetMsPerFrame = 1000.0 / targetFps
+
+    let state = initRendering window state
+
+    // Thanks @handmadehero for this trick!
+    // This sets scheduler granularity to 1 ms, sets us up for rendering at correct FPS
+    // And not melting the CPU by using Thread.Sleep, and waking up at the perfect time
+    let result = WinInterop.External.timeBeginPeriod(1un)
+    if result <> WinInterop.External.winMmmNoError then do
+        Console.WriteLine("Could not set scheduler frequency")
+        running <- false
 
     let mutable messages: WinInterop.External.MSG = WinInterop.External.MSG()
-    // Run the message loop. It will run until GetMessage() returns 0
-    while WinInterop.External.GetMessageA (&messages, 0n, 0un, 0un) do
-        // Translate virtual-key messages into character messages 
-        WinInterop.External.TranslateMessage &messages |> ignore
-        // Send message to WindowProcedure
-        WinInterop.External.DispatchMessageA &messages |> ignore
+    let sw = Stopwatch.StartNew()
+    while running do
+        
+        let mutable handledMessages = 0
+        // Get all messages remaining in queue
+        while WinInterop.External.PeekMessageW (&messages, 0n, 0u, 0u, 0x0001u) <> 0 do
+            let uMsg = messages.message
+
+            match uMsg with
+            | Field WinInterop.WindowMsgType.WM_DESTROY
+            | Field WinInterop.WindowMsgType.WM_QUIT
+            | Field WinInterop.WindowMsgType.WM_CLOSE ->
+                running <- false
+
+            | _ -> // Translate virtual-key messages into character messages 
+                WinInterop.External.TranslateMessage &messages |> ignore
+                // Send message to WindowProcedure
+                WinInterop.External.DispatchMessageW &messages |> ignore
+
+            handledMessages <- handledMessages + 1
+
+        state.gameState <- 
+            state.gameState
+            |> update targetMsPerFrame
+
+        state.renderingState <- 
+            state.renderingState
+            |> ValueOption.map (fun r -> render state.gameState r)
+
+        let timeForUpdateAndRender = sw.Elapsed;
+
+        let delta = targetMsPerFrame - sw.Elapsed.TotalMilliseconds
+        if delta > 0.0 then do
+            
+            let toSleep = int delta - 1
+
+            // Give up CPU until we actually need it
+            if toSleep > 0 then do
+                Thread.Sleep(toSleep)
+
+            // Lets wait all those microseconds that thread sleep did not handle
+            while targetMsPerFrame - sw.Elapsed.TotalMilliseconds > 0.0 do
+                ()
+
+        // We are starting to count next frame time from here
+        // We want out measurements to be accurate, and we are sure that now is the time we are aiming for
+        let elapsedInLastFrame = sw.Elapsed
+        sw.Restart()
+
+        Console.WriteLine($"""Elapsed in loop: {elapsedInLastFrame.TotalMilliseconds.ToString("0.00")}ms. Needed for loop: {timeForUpdateAndRender.TotalMilliseconds.ToString("0.00")}. Handled msgs: {handledMessages}""")
 
     Console.WriteLine("Exiting...")
 

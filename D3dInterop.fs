@@ -705,7 +705,7 @@ type D3D12_RESOURCE_UAV_BARRIER =
     val mutable pResource: nativeint
 
 [<Struct>]
-[<StructLayout(LayoutKind.Explicit, Pack = 0)>]
+[<StructLayout(LayoutKind.Explicit)>]
 type D3D12_RESOURCE_BARRIER_Union = 
     [<FieldOffset(0)>]
     val mutable Transition: D3D12_RESOURCE_TRANSITION_BARRIER
@@ -977,6 +977,7 @@ type ID3D12GraphicsCommandList =
         pViews: byref<D3D12_STREAM_OUTPUT_BUFFER_VIEW>
             -> unit
     
+    [<PreserveSig>] // Why does this fix random exceptions on first render?
     abstract member OMSetRenderTargets:
         NumRenderTargetDescriptors: uint * 
         pRenderTargetDescriptors: byref<D3D12_CPU_DESCRIPTOR_HANDLE> * 

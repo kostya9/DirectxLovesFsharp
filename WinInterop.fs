@@ -66,20 +66,39 @@
 
         [<Struct>]
         [<StructLayout(LayoutKind.Sequential)>]
+        type Rect = 
+            val mutable left: int
+            val mutable top: int
+            val mutable right: int
+            val mutable bottom: int
+
+        [<Struct>]
+        [<StructLayout(LayoutKind.Sequential)>]
+        type PAINTSTRUCT = 
+            val mutable hdc: nativeint
+            val mutable fErase: bool
+            val mutable rcPaint: Rect
+            val mutable fRestore: bool
+            val mutable fIncUpdate: bool
+
+            [<MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)>]
+            val mutable rgbReserved: byte[]
+
+        [<Struct>]
+        [<StructLayout(LayoutKind.Sequential)>]
         type Point = 
-            val mutable X: double
-            val mutable Y: double
+            val mutable X: int
+            val mutable Y: int
 
         [<Struct>]
         [<StructLayout(LayoutKind.Sequential)>]
         type MSG = 
             val mutable hwnd: HWND
             val mutable message: uint
-            val mutable wParam: nativeint
+            val mutable wParam: unativeint
             val mutable lParam: nativeint
-            val mutable time: uint32
+            val mutable time: uint
             val mutable pt: Point
-            val mutable lPrivate: uint32
         
 
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
@@ -106,16 +125,16 @@
         extern uint16 RegisterClassExA(WNDCLASSEXA& unnamedParam1)
 
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
-        extern nativeint DefWindowProcA(HWND hWnd, unativeint uMsg, nativeint wParam, nativeint lParam)
+        extern nativeint DefWindowProcA(HWND hWnd, uint uMsg, unativeint wParam, nativeint lParam)
 
-        [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
-        extern bool GetMessageA(MSG& messages, HWND hWnd, unativeint wMsgFilterMin, unativeint wMsgFilterMax)
+        [<DllImport("user32", ExactSpelling = true)>]
+        extern int PeekMessageW(MSG& lpMsg, nativeint hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg)
 
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
         extern bool TranslateMessage(MSG& messages)
 
         [<DllImport("user32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
-        extern bool DispatchMessageA(MSG& messages)
+        extern bool DispatchMessageW(MSG& messages)
 
         [<DllImport("kernel32", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
         extern Handle CreateEventW(
@@ -140,12 +159,26 @@
         extern void PostQuitMessage(int nExitCode)
 
 
-    type WindowProc = delegate of nativeint * unativeint * nativeint * nativeint -> nativeint
+        let winMmmNoError = 0un
+        [<DllImport("winmm", ExactSpelling = true, SetLastError = true, ThrowOnUnmappableChar = true)>]
+        extern unativeint timeBeginPeriod(unativeint uPeriod)
+
+        [<DllImport("user32", ExactSpelling = true)>]
+        extern nativeint BeginPaint(HWND hWnd, PAINTSTRUCT& lpPaint)
+
+        [<DllImport("user32", ExactSpelling = true)>]
+        extern bool EndPaint(HWND hWnd, PAINTSTRUCT& lpPaint)
+
+
+    type WindowProc = delegate of nativeint * uint * unativeint * nativeint -> nativeint
 
     module WindowMsgType =
-        let WM_CREATE = 0x0001un
-        let WM_PAINT = 0x000Fun
-        let WM_DESTROY = 0x0002un
+        let WM_NCCREATE = 0x0081u
+        let WM_CREATE = 0x0001u
+        let WM_PAINT = 0x000Fu
+        let WM_DESTROY = 0x0002u
+        let WM_QUIT = 0x0012u
+        let WM_CLOSE = 0x0010u
 
     let makeWindow(callback: WindowProc) =
 
