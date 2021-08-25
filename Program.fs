@@ -691,6 +691,8 @@ let main argv =
 
         Console.WriteLine($"""Elapsed in loop: {elapsedInLastFrame.TotalMilliseconds.ToString("0.00")}ms. Needed for loop: {timeForUpdateAndRender.TotalMilliseconds.ToString("0.00")}. Handled msgs: {handledMessages}""")
 
+    // Hey, GC, pretty please, don't collect my WinProc delegate
+    GC.KeepAlive(window)
     Console.WriteLine("Exiting...")
 
     0
