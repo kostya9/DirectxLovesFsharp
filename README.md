@@ -1,6 +1,9 @@
 # WIP - playing around, making F# interop with Win32+DirectX
 
-My thoughts:
+## Result
+<img src="https://user-images.githubusercontent.com/3115913/130693364-f0b9f98e-3594-459e-9910-82b0ca1f345b.gif" height="500" alt="Animation"/>
+
+## My thoughts:
 - GUIDs are important!
 - Order of methods in COM is important!
 - Number of methods is important!
@@ -28,3 +31,5 @@ let verticesDataSpan = new Span<Vertex>(pVertexDataBegin, vertices.Length)
 vertices.CopyTo(verticesDataSpan)
 ```
 - Make sure you release COM objects or tie them to GC Roots so that strange finalizer boogey-woogey internal CLR errors won't occur (alternatively, create nice wrappers that implement finalizers/disposables. oh well, I am too lazy for that)
+- nativeint.ToPointer() is a handy method
+- BeginPaint and EndPaint should be called in WinProc on WM_PAINT
