@@ -318,21 +318,8 @@ let loadAssets (pipeline): D3dAssets =
     // CommandList is created in open state, so we reset it
     commandList.Close()
 
-    let vertices: Vertex[] = [|
-        {
-            position = { x = 0f; y = 0.25f; z = 0f };
-            color = { x = 1f; y = 0f; z = 0f; w = 1f }
-        }
-        {
-            position = { x = 0.25f; y = -0.25f; z = 0f };
-            color = { x = 0f; y = 1f; z = 0f; w = 1f }
-        }
-        {
-            position = { x = -0.25f; y = -0.25f; z = 0f };
-            color = { x = 0f; y = 0f; z = 1f; w = 1f }
-        }
-    |]
-    let verticesSize = sizeof<Vertex> * vertices.Length
+    let verticesCount = 3
+    let verticesSize = sizeof<Vertex> * verticesCount
 
     let mutable props = D3dInterop.D3D12_HEAP_PROPERTIES()
     props.CPUPageProperty <- D3dInterop.D3D12_CPU_PAGE_PROPERTY.D3D12_CPU_PAGE_PROPERTY_UNKNOWN
@@ -362,18 +349,6 @@ let loadAssets (pipeline): D3dAssets =
         0n,
         typeof<D3dInterop.ID3D12Resource>.GUID,
         &vertexBuffer)
-
-    let mutable readRange = D3dInterop.D3D12_RANGE()
-    readRange.Begin <- 0un
-    readRange.End <- 0un
-
-    let mutable pVertexDataBegin = Unchecked.defaultof<voidptr>
-    vertexBuffer.Map(0u, &readRange, &pVertexDataBegin)
-
-    let verticesDataSpan = new Span<Vertex>(pVertexDataBegin, vertices.Length)
-    vertices.CopyTo(verticesDataSpan)
-
-    vertexBuffer.Unmap(0u, 0n)
 
     let mutable vertexBufferView = D3dInterop.D3D12_VERTEX_BUFFER_VIEW()
     vertexBufferView.BufferLocation <- vertexBuffer.GetGPUVirtualAddress()
