@@ -601,7 +601,7 @@ let main argv =
     let state = WindowsCallbackState(Game.mkGameState())
     let window = mkWindowWithProc(state)
 
-    let targetFps = 60.0
+    let targetFps = 144.0
     let targetMsPerFrame = 1000.0 / targetFps
 
     let state = initRendering window state
@@ -664,7 +664,8 @@ let main argv =
         let elapsedInLastFrame = sw.Elapsed
         sw.Restart()
 
-        Console.WriteLine($"""Elapsed in loop: {elapsedInLastFrame.TotalMilliseconds.ToString("0.00")}ms. Needed for loop: {timeForUpdateAndRender.TotalMilliseconds.ToString("0.00")}. Handled msgs: {handledMessages}""")
+        let fps = 1000.0 / elapsedInLastFrame.TotalMilliseconds
+        Console.WriteLine($"""Elapsed in loop: {elapsedInLastFrame.TotalMilliseconds.ToString("0.00")}ms ({Math.Round(fps)} fps). Needed for loop: {timeForUpdateAndRender.TotalMilliseconds.ToString("0.00")}. Handled msgs: {handledMessages}""")
 
     // Hey, GC, pretty please, don't collect my WinProc delegate
     GC.KeepAlive(window)
