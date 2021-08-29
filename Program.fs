@@ -3,6 +3,7 @@ open System
 open WinInterop
 open System.IO
 open System.Text
+open System.Buffers
 open System.Runtime.InteropServices
 open System.Diagnostics
 open System.Threading
@@ -395,10 +396,14 @@ let fillTriangle (span: Span<Vertex>) (triangle: Game.Triangle) =
         color = { x = 0f; y = 0f; z = 1f; w = 1f }
     }
 
+let inline stackalloc<'A> count = 
+    let totalSize = sizeof<'A> * count
+    let ptr = NativeInterop.NativePtr.stackalloc<byte> totalSize
+    let span = Span<'A>(ptr |> NativeInterop.NativePtr.toVoidPtr, count)
+    span
+
 let uploadTriangle (vertexBuffer: D3dInterop.ID3D12Resource) triangle = 
-    let verticesSize = sizeof<Vertex> * 3
-    let verticesPtr = NativeInterop.NativePtr.stackalloc<byte> verticesSize
-    let verticesSpan = Span<Vertex>(verticesPtr |> NativeInterop.NativePtr.toVoidPtr, 3)
+    let verticesSpan = stackalloc<Vertex> 3
     fillTriangle verticesSpan triangle
 
     let mutable readRange = D3dInterop.D3D12_RANGE()
@@ -532,10 +537,12 @@ let render gameState renderState =
 
     // Execute the command list.
     let commandList = renderState.Assets.CommandList
-    let commandList: D3dInterop.ID3D12CommandList[] = [| commandList |]
+    let commandListArray: D3dInterop.ID3D12CommandList[] = ArrayPool.Shared.Rent(1)
+    commandListArray.[0] <- commandList :> D3dInterop.ID3D12CommandList
 
     let commandQueue = renderState.Assets.Pipeline.CommandQueue
-    commandQueue.ExecuteCommandLists(1u, commandList);
+    commandQueue.ExecuteCommandLists(1u, commandListArray);
+    ArrayPool.Shared.Return(commandListArray)
 
     // Present the frame.
     renderState.Assets.Pipeline.SwapChain.Present(1u, 0u)
@@ -548,7 +555,6 @@ let (|Field|_|) field x = if field = x then Some () else None
 
 let mutable running = true
 let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg: uint) (wParam: unativeint) (lParam: nativeint) =
-    //Console.WriteLine("Got " + string uMsg)
 
     match uMsg with
     | Field WinInterop.WindowMsgType.WM_CREATE ->
@@ -566,7 +572,6 @@ let windowCallback (callbackState: WindowsCallbackState) (hwnd: nativeint) (uMsg
         let mutable ps = WinInterop.External.PAINTSTRUCT()
         let hdc = WinInterop.External.BeginPaint(hwnd, &ps)
         WinInterop.External.EndPaint(hwnd, &ps) |> ignore
-            
 
         0n
     | _ -> External.DefWindowProcA(hwnd, uMsg, wParam, lParam)
